@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Modbus mapped device",
+        "description": "Choose Modbus transport",
+        "data": {
+          "transport": "Transport (tcp/rtu)"
+        }
+      },
+      "tcp": {
+        "title": "Modbus TCP",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "slave_id": "Unit/Slave ID",
+          "scan_interval": "Update interval (minutes)"
+        }
+      },
+      "rtu": {
+        "title": "Modbus RTU",
+        "data": {
+          "serial_port": "Serial device (e.g. /dev/ttyUSB0)",
+          "baudrate": "Baudrate",
+          "bytesize": "Data bits",
+          "parity": "Parity",
+          "stopbits": "Stop bits",
+          "slave_id": "Unit/Slave ID",
+          "scan_interval": "Update interval (minutes)"
+        }
+      },
+      "mapping": {
+        "title": "Device mapping",
+        "description": "Select a mapping profile",
+        "data": {
+          "mapping_file": "Mapping JSON"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Connection failed",
+      "no_mapping_files": "No mapping files found in custom component"
+    }
+  }
+}

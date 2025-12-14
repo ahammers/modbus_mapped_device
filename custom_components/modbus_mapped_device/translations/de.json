@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Modbus-Gerät (Mapping)",
+        "description": "Bitte Transport auswählen",
+        "data": {
+          "transport": "Transport (tcp/rtu)"
+        }
+      },
+      "tcp": {
+        "title": "Modbus TCP",
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "slave_id": "Unit/Slave-ID",
+          "scan_interval": "Update-Intervall (Minuten)"
+        }
+      },
+      "rtu": {
+        "title": "Modbus RTU",
+        "data": {
+          "serial_port": "Serielles Device (z.B. /dev/ttyUSB0)",
+          "baudrate": "Baudrate",
+          "bytesize": "Datenbits",
+          "parity": "Parität",
+          "stopbits": "Stopbits",
+          "slave_id": "Unit/Slave-ID",
+          "scan_interval": "Update-Intervall (Minuten)"
+        }
+      },
+      "mapping": {
+        "title": "Geräte-Mapping",
+        "description": "Bitte ein Mapping-Profil auswählen",
+        "data": {
+          "mapping_file": "Mapping-JSON"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen",
+      "no_mapping_files": "Keine Mapping-Dateien im Custom Component gefunden"
+    }
+  }
+}
