@@ -1,0 +1,63 @@
+device:
+  name: C++ Demo Server 3
+  manufacturer: www.hammerschmidt.at
+  model: modbus_server3.cpp
+
+entities:
+  - platform: sensor
+    key: input20
+    name: Input Register 20
+    read:
+      type: input
+      address: 20
+      data_type: int16
+      scale: 0.1
+    unit: "°C"
+    device_class: temperature
+    state_class: measurement
+
+  - platform: sensor
+    key: input120
+    name: Input Register 120
+    read:
+      type: input
+      address: 120
+      data_type: int16
+      scale: 0.1
+    unit: "°C"
+    device_class: temperature
+    state_class: measurement
+
+  - platform: binary_sensor
+    key: holding30.1
+    name: Holding 30
+    read:
+      type: holding
+      address: 30
+      data_type: uint16
+      bit: 1
+
+  - platform: binary_sensor
+    key: holding130.3
+    name: Holding 130
+    read:
+      type: holding
+      address: 130
+      data_type: uint16
+      bit: 3
+
+  - platform: number
+    key: holding110
+    name: Holding Register 101
+    read:
+      type: holding
+      address: 110
+    write:
+      type: holding
+      address: 110
+      data_type: int16
+      scale: 1
+    min: 0
+    max: 5000
+    step: 10
+    unit: W

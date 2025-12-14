@@ -1,0 +1,36 @@
+device:
+  name: Demo Device A
+  manufacturer: Example Inc
+  model: A-1000
+
+entities:
+  - platform: sensor
+    key: grid_voltage
+    name: Grid Voltage
+    read:
+      type: holding
+      address: 0
+      data_type: uint16
+      scale: 0.1
+    unit: V
+
+  - platform: sensor
+    key: power_w
+    name: Power
+    read:
+      type: holding
+      address: 10
+      data_type: int32
+      word_order: BA
+    unit: W
+
+  - platform: switch
+    key: enable_output
+    name: Enable Output (bit3)
+    read:
+      type: holding
+      address: 100
+    write:
+      type: holding
+      address: 100
+      bit: 3

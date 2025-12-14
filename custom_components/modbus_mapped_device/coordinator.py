@@ -1,269 +1,256 @@
 from __future__ import annotations
 
-import json
+import asyncio
 import os
 import struct
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Literal
+from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import yaml as ha_yaml
 
-from .const import (
-    DOMAIN,
-    CONF_TRANSPORT, CONF_MAPPING,
-    CONF_HOST, CONF_PORT,
-    CONF_PORT_DEVICE, CONF_BAUDRATE, CONF_BYTESIZE, CONF_PARITY, CONF_STOPBITS,
-    CONF_SLAVE_ID, CONF_SCAN_INTERVAL,
-)
+from .const import *
 from .modbus_client import ModbusClientWrapper, TcpParams, RtuParams
 
-RegType = Literal["holding", "input", "coil", "discrete"]
-DataType = Literal["uint16", "int16", "uint32", "int32", "float32"]
 
-@dataclass(frozen=True)
+@dataclass
 class MappedEntity:
-    platform: Literal["sensor", "binary_sensor"]
+    platform: str
     key: str
     name: str
-    reg_type: RegType
-    address: int
-    data_type: DataType | None = None
+    read: dict | None
+    write: dict | None
     unit: str | None = None
-    scale: float | None = None
-    device_class: str | None = None
-    state_class: str | None = None
     icon: str | None = None
+    options: list | None = None
+    min: float | None = None
+    max: float | None = None
+    step: float | None = None
+    press_value: int | None = None
 
-    # binary-only
-    bit: int | None = None
 
-@dataclass(frozen=True)
-class MappingDefinition:
-    device_name: str
-    manufacturer: str | None
-    model: str | None
-    entities: list[MappedEntity]
-
-def _integration_dir() -> str:
+def _base_dir() -> str:
     return os.path.dirname(__file__)
 
+
+def _mappings_dir() -> str:
+    return os.path.join(_base_dir(), "mappings")
+
+
 def list_mapping_files() -> list[str]:
-    mdir = os.path.join(_integration_dir(), "mappings")
+    mdir = _mappings_dir()
     if not os.path.isdir(mdir):
         return []
-    files = [f for f in os.listdir(mdir) if f.endswith(".json")]
+    files: list[str] = []
+    for f in os.listdir(mdir):
+        fl = f.lower()
+        if fl.endswith(".yaml") or fl.endswith(".yml"):
+            files.append(f)
     files.sort()
     return files
 
-def load_mapping(filename: str) -> MappingDefinition:
-    path = os.path.join(_integration_dir(), "mappings", filename)
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
+
+def _require_dict(value: Any, what: str) -> dict:
+    if not isinstance(value, dict):
+        raise ValueError(f"Mapping YAML: '{what}' muss ein Mapping/Dict sein.")
+    return value
+
+
+def _require_list(value: Any, what: str) -> list:
+    if not isinstance(value, list):
+        raise ValueError(f"Mapping YAML: '{what}' muss eine Liste sein.")
+    return value
+
+
+def load_mapping(filename: str) -> tuple[dict, list[MappedEntity]]:
+    path = os.path.join(_mappings_dir(), filename)
+    if not os.path.exists(path):
+        raise ValueError(f"Mapping-Datei nicht gefunden: {path}")
+
+    data = ha_yaml.load_yaml(path)
+    data = _require_dict(data, "root")
+
+    device = _require_dict(data.get("device", {}), "device")
+    entities_raw = _require_list(data.get("entities", []), "entities")
 
     entities: list[MappedEntity] = []
-    for e in data.get("entities", []):
-        entities.append(MappedEntity(
-            platform=e["platform"],
-            key=e["key"],
-            name=e.get("name", e["key"]),
-            reg_type=e["register"]["type"],
-            address=int(e["register"]["address"]),
-            data_type=e.get("data_type"),
+    for e in entities_raw:
+        e = _require_dict(e, "entities[]")
+
+        platform = e["platform"]
+        key = e["key"]
+        name = e.get("name", key)
+
+        ent = MappedEntity(
+            platform=platform,
+            key=key,
+            name=name,
+            read=e.get("read"),
+            write=e.get("write"),
             unit=e.get("unit"),
-            scale=e.get("scale"),
-            device_class=e.get("device_class"),
-            state_class=e.get("state_class"),
             icon=e.get("icon"),
-            bit=e.get("bit"),
-        ))
+            options=e.get("options"),
+            min=e.get("min"),
+            max=e.get("max"),
+            step=e.get("step"),
+            press_value=e.get("press_value"),
+        )
+        entities.append(ent)
 
-    return MappingDefinition(
-        device_name=data.get("device", {}).get("name", "Modbus Device"),
-        manufacturer=data.get("device", {}).get("manufacturer"),
-        model=data.get("device", {}).get("model"),
-        entities=entities,
-    )
+    return device, entities
 
-def _regs_needed_for_entity(ent: MappedEntity) -> int:
-    if ent.reg_type in ("coil", "discrete"):
-        return 1
-    # 16-bit reg based
-    if ent.data_type in ("uint16", "int16"):
-        return 1
-    if ent.data_type in ("uint32", "int32", "float32"):
-        return 2
-    return 1
-
-def _decode_registers(data_type: DataType, regs: list[int]) -> float | int:
-    # Big-endian word order, typical Modbus.
-    if data_type == "uint16":
-        return regs[0] & 0xFFFF
-    if data_type == "int16":
-        v = regs[0] & 0xFFFF
-        return v - 0x10000 if v & 0x8000 else v
-
-    hi = regs[0] & 0xFFFF
-    lo = regs[1] & 0xFFFF
-    raw = (hi << 16) | lo
-
-    if data_type == "uint32":
-        return raw
-    if data_type == "int32":
-        return raw - 0x100000000 if raw & 0x80000000 else raw
-    if data_type == "float32":
-        b = struct.pack(">I", raw)
-        return struct.unpack(">f", b)[0]
-
-    return regs[0]
 
 class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
-    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+    def __init__(self, hass, entry):
         self.hass = hass
         self.entry = entry
+        self._lock = asyncio.Lock()
+        self._connected = False
 
-        scan_min = int(entry.data.get(CONF_SCAN_INTERVAL, 5))
-        super().__init__(
-            hass,
-            logger=__import__("logging").getLogger(__name__),
-            name=f"{DOMAIN}_{entry.entry_id}",
-            update_interval=timedelta(minutes=scan_min),
-        )
-
-        self.mapping = load_mapping(entry.data[CONF_MAPPING])
+        device, self.entities = load_mapping(entry.data[CONF_MAPPING])
+        self.device = device
+        self._slave = entry.data[CONF_SLAVE_ID]
 
         transport = entry.data[CONF_TRANSPORT]
-        tcp = None
-        rtu = None
+        tcp = rtu = None
         if transport == "tcp":
-            tcp = TcpParams(
-                host=entry.data[CONF_HOST],
-                port=int(entry.data[CONF_PORT]),
-            )
+            tcp = TcpParams(entry.data[CONF_HOST], entry.data[CONF_PORT])
         else:
             rtu = RtuParams(
-                port=entry.data[CONF_PORT_DEVICE],
-                baudrate=int(entry.data[CONF_BAUDRATE]),
-                bytesize=int(entry.data[CONF_BYTESIZE]),
-                parity=str(entry.data[CONF_PARITY]),
-                stopbits=int(entry.data[CONF_STOPBITS]),
+                entry.data[CONF_PORT_DEVICE],
+                entry.data[CONF_BAUDRATE],
+                entry.data[CONF_BYTESIZE],
+                entry.data[CONF_PARITY],
+                entry.data[CONF_STOPBITS],
             )
 
-        self._slave_id = int(entry.data[CONF_SLAVE_ID])
-        self._client = ModbusClientWrapper(transport=transport, tcp=tcp, rtu=rtu)
+        self.client = ModbusClientWrapper(transport, tcp, rtu)
 
-    async def async_close(self) -> None:
-        await self.hass.async_add_executor_job(self._client.close)
+        super().__init__(
+            hass,
+            name=DOMAIN,
+            update_interval=timedelta(minutes=entry.data[CONF_SCAN_INTERVAL]),
+        )
 
-    async def _async_update_data(self) -> dict[str, Any]:
-        # Connect (sync) inside executor
-        ok = await self.hass.async_add_executor_job(self._client.connect)
-        if not ok:
-            raise UpdateFailed("Modbus connection failed")
+    async def _ensure(self):
+        if not self._connected:
+            if not await self.hass.async_add_executor_job(self.client.connect):
+                raise UpdateFailed("Connect failed")
+            self._connected = True
 
-        try:
-            return await self._read_all()
-        except Exception as e:
-            raise UpdateFailed(str(e)) from e
+    async def _drop(self):
+        await self.hass.async_add_executor_job(self.client.close)
+        self._connected = False
 
-    async def _read_all(self) -> dict[str, Any]:
-        # Group reads per reg_type and contiguous ranges (simple strategy)
-        # Output dict: entity_key -> value
-        result: dict[str, Any] = {}
+    async def _async_update_data(self):
+        async with self._lock:
+            last: Exception | None = None
+            for _ in range(2):
+                try:
+                    await self._ensure()
+                    return await self._read_all()
+                except Exception as e:
+                    last = e
+                    await self._drop()
+            raise UpdateFailed(str(last) if last else "Unknown update error")
 
-        # Create per type list
-        by_type: dict[RegType, list[MappedEntity]] = {"holding": [], "input": [], "coil": [], "discrete": []}
-        for ent in self.mapping.entities:
-            by_type[ent.reg_type].append(ent)
+    async def _read_all(self):
+        data: dict[str, Any] = {}
 
-        for reg_type, ents in by_type.items():
-            if not ents:
+        for e in self.entities:
+            if not e.read:
                 continue
-            ents_sorted = sorted(ents, key=lambda e: e.address)
 
-            # Build ranges: contiguous enough, also consider needed length
-            ranges: list[tuple[int, int, list[MappedEntity]]] = []
-            cur_start = None
-            cur_end = None
-            cur_ents: list[MappedEntity] = []
+            r = e.read
+            reg_type = r.get("type", "holding")
+            addr = int(r["address"])
+            dtype = r.get("data_type", "uint16")
+            word_order = r.get("word_order", "AB")  # AB default, BA swapped
 
-            for ent in ents_sorted:
-                need = _regs_needed_for_entity(ent)
-                start = ent.address
-                end = ent.address + need - 1
+            # NOTE: In diesem vereinfachten Reader lesen wir Holding-Register.
+            # Wenn du input/coil/discrete brauchst, kann man das analog erweitern.
+            count = 2 if str(dtype).endswith("32") else 1
 
-                if cur_start is None:
-                    cur_start, cur_end = start, end
-                    cur_ents = [ent]
-                    continue
+            rr = await self.hass.async_add_executor_job(
+                self.client.read_holding_registers,
+                addr,
+                count,
+                self._slave,
+            )
 
-                # merge if overlapping/contiguous and range not too big
-                if start <= (cur_end + 1) and (end - cur_start) <= 120:
-                    cur_end = max(cur_end, end)
-                    cur_ents.append(ent)
-                else:
-                    ranges.append((cur_start, cur_end, cur_ents))
-                    cur_start, cur_end = start, end
-                    cur_ents = [ent]
+            regs = rr.registers
+            if word_order == "BA" and len(regs) == 2:
+                regs = [regs[1], regs[0]]
 
-            if cur_start is not None:
-                ranges.append((cur_start, cur_end, cur_ents))
+            if dtype == "uint16":
+                val = regs[0]
+            elif dtype == "int16":
+                val = struct.unpack(">h", struct.pack(">H", regs[0]))[0]
+            elif dtype == "uint32":
+                val = (regs[0] << 16) | regs[1]
+            elif dtype == "int32":
+                val = struct.unpack(">i", struct.pack(">I", (regs[0] << 16) | regs[1]))[0]
+            elif dtype == "float32":
+                val = struct.unpack(">f", struct.pack(">I", (regs[0] << 16) | regs[1]))[0]
+            else:
+                val = regs[0]
 
-            # Read each range
-            for start, end, range_ents in ranges:
-                count = end - start + 1
+            # optional scale im read
+            scale = r.get("scale")
+            if scale is not None:
+                try:
+                    val = float(val) * float(scale)
+                except Exception:
+                    pass
 
-                if reg_type == "holding":
-                    rr = await self.hass.async_add_executor_job(
-                        self._client.read_holding_registers, start, count, self._slave_id
-                    )
-                    regs = getattr(rr, "registers", None)
-                elif reg_type == "input":
-                    rr = await self.hass.async_add_executor_job(
-                        self._client.read_input_registers, start, count, self._slave_id
-                    )
-                    regs = getattr(rr, "registers", None)
-                elif reg_type == "coil":
-                    rr = await self.hass.async_add_executor_job(
-                        self._client.read_coils, start, count, self._slave_id
-                    )
-                    regs = getattr(rr, "bits", None)
-                else:
-                    rr = await self.hass.async_add_executor_job(
-                        self._client.read_discrete_inputs, start, count, self._slave_id
-                    )
-                    regs = getattr(rr, "bits", None)
+            data[e.key] = val
 
-                if regs is None:
-                    # pymodbus sets .isError() on errors; keep it generic
-                    raise RuntimeError(f"Modbus read failed ({reg_type}) at {start} len {count}")
+        return data
 
-                # extract each entity from regs
-                for ent in range_ents:
-                    offset = ent.address - start
+    async def write_holding(self, e: MappedEntity, value):
+        w = e.write
+        if not w:
+            return
 
-                    if ent.reg_type in ("coil", "discrete"):
-                        val = bool(regs[offset])
-                        result[ent.key] = val
-                        continue
+        addr = int(w["address"])
 
-                    dt = ent.data_type or "uint16"
-                    need = _regs_needed_for_entity(ent)
-                    slice_regs = [int(r) for r in regs[offset: offset + need]]
-                    val_num = _decode_registers(dt, slice_regs)
+        async with self._lock:
+            last: Exception | None = None
+            for _ in range(2):
+                try:
+                    await self._ensure()
 
-                    if ent.scale is not None:
-                        val_num = float(val_num) * float(ent.scale)
-
-                    # binary_sensor from register/bit optional
-                    if ent.platform == "binary_sensor" and ent.bit is not None:
-                        # interpret first reg as uint16 bitfield
-                        raw16 = int(slice_regs[0]) & 0xFFFF
-                        val = bool((raw16 >> int(ent.bit)) & 1)
-                        result[ent.key] = val
+                    # Holding-bit-switch: read-modify-write
+                    if "bit" in w:
+                        bit = int(w["bit"])
+                        rr = await self.hass.async_add_executor_job(
+                            self.client.read_holding_registers, addr, 1, self._slave
+                        )
+                        cur = int(rr.registers[0]) & 0xFFFF
+                        if value:
+                            cur = cur | (1 << bit)
+                        else:
+                            cur = cur & ~(1 << bit)
+                        await self.hass.async_add_executor_job(
+                            self.client.write_register, addr, cur, self._slave
+                        )
                     else:
-                        result[ent.key] = val_num
+                        # optional scale beim write
+                        scale = w.get("scale")
+                        v = value
+                        if scale is not None and float(scale) != 0.0:
+                            v = float(value) / float(scale)
 
-        return result
+                        await self.hass.async_add_executor_job(
+                            self.client.write_register, addr, int(v), self._slave
+                        )
+
+                    await self.async_request_refresh()
+                    return
+
+                except Exception as ex:
+                    last = ex
+                    await self._drop()
+
+            raise UpdateFailed(str(last) if last else "Write failed")
