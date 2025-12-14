@@ -1,4 +1,8 @@
 {
   "name": "Modbus Mapped Device",
-  "content_in_root": true
+  "domains": ["modbus_mapped_device"],
+  "iot_class": "local_polling",
+  "render_readme": true,
+  "content_in_root": true,
+  "zip_release": false
 }
