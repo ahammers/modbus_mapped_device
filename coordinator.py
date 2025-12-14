@@ -6,6 +6,7 @@ import os
 import struct
 from dataclasses import dataclass
 from datetime import timedelta
+from types import SimpleNamespace
 from typing import Any
 
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -104,6 +105,29 @@ def load_mapping(filename: str) -> tuple[dict, list[MappedEntity]]:
     return device, entities
 
 
+def _decode_16_32(dtype: str, regs: list[int], word_order: str) -> int | float:
+    regs = [int(r) & 0xFFFF for r in regs]
+
+    if word_order == "BA" and len(regs) == 2:
+        regs = [regs[1], regs[0]]
+
+    if dtype == "uint16":
+        return regs[0]
+    if dtype == "int16":
+        return struct.unpack(">h", struct.pack(">H", regs[0]))[0]
+
+    raw = ((regs[0] << 16) | regs[1]) & 0xFFFFFFFF
+    if dtype == "uint32":
+        return raw
+    if dtype == "int32":
+        return struct.unpack(">i", struct.pack(">I", raw))[0]
+    if dtype == "float32":
+        return struct.unpack(">f", struct.pack(">I", raw))[0]
+
+    # fallback
+    return regs[0]
+
+
 class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def __init__(self, hass, entry):
         self.hass = hass
@@ -114,6 +138,14 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         device, self.entities = load_mapping(entry.data[CONF_MAPPING])
         self.device = device
         self._slave = int(entry.data[CONF_SLAVE_ID])
+
+        # Backwards-compatible "mapping" view (für deine bestehenden platform.py Dateien)
+        self.mapping = SimpleNamespace(
+            entities=self.entities,
+            device_name=device.get("name", "Modbus Device"),
+            manufacturer=device.get("manufacturer"),
+            model=device.get("model"),
+        )
 
         transport = entry.data[CONF_TRANSPORT]
         tcp = rtu = None
@@ -137,18 +169,19 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             update_interval=timedelta(minutes=int(entry.data[CONF_SCAN_INTERVAL])),
         )
 
-    async def _ensure(self):
-        if not self._connected:
-            ok = await self.hass.async_add_executor_job(self.client.connect)
-            if not ok:
-                raise UpdateFailed("Connect failed")
-            self._connected = True
+    async def _ensure(self) -> None:
+        if self._connected:
+            return
+        ok = await self.hass.async_add_executor_job(self.client.connect)
+        if not ok:
+            raise UpdateFailed("Connect failed")
+        self._connected = True
 
-    async def _drop(self):
+    async def _drop(self) -> None:
         await self.hass.async_add_executor_job(self.client.close)
         self._connected = False
 
-    async def _async_update_data(self):
+    async def _async_update_data(self) -> dict[str, Any]:
         async with self._lock:
             last: Exception | None = None
             for _ in range(2):
@@ -160,52 +193,62 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                     await self._drop()
             raise UpdateFailed(str(last) if last else "Unknown update error")
 
-    async def _read_all(self):
+    async def _read_all(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
 
-        for e in self.entities:
-            if not e.read:
+        for ent in self.entities:
+            r = ent.read
+            if not r:
                 continue
 
-            r = e.read
-            reg_type = r.get("type", "holding")
+            reg_type = str(r.get("type", "holding"))
             addr = int(r["address"])
-            dtype = r.get("data_type", "uint16")
-            word_order = r.get("word_order", "AB")  # AB default, BA swapped
 
-            # Aktuell: Beispiel-Implementation liest Holding-Register.
-            # (Wenn du input/coil/discrete in der Runtime brauchst, sag Bescheid, dann erweitern wir das sauber.)
-            if reg_type != "holding":
-                # fürs Debugging sichtbar machen statt stillschweigend falsch zu lesen
-                _LOGGER.debug("Skipping non-holding read (%s) for key=%s", reg_type, e.key)
+            # coils/discretes -> bool
+            if reg_type == "coil":
+                rr = await self.hass.async_add_executor_job(
+                    self.client.read_coils, addr, 1, self._slave
+                )
+                data[ent.key] = bool(rr.bits[0])
                 continue
 
-            count = 2 if str(dtype).endswith("32") else 1
+            if reg_type == "discrete":
+                rr = await self.hass.async_add_executor_job(
+                    self.client.read_discrete_inputs, addr, 1, self._slave
+                )
+                data[ent.key] = bool(rr.bits[0])
+                continue
 
-            rr = await self.hass.async_add_executor_job(
-                self.client.read_holding_registers,
-                addr,
-                count,
-                self._slave,
-            )
+            # holding/input -> register values (+ optional bit extraction)
+            dtype = str(r.get("data_type", "uint16"))
+            word_order = str(r.get("word_order", "AB"))
+            bit = r.get("bit", None)
+
+            count = 2 if dtype.endswith("32") else 1
+
+            if reg_type == "holding":
+                rr = await self.hass.async_add_executor_job(
+                    self.client.read_holding_registers, addr, count, self._slave
+                )
+            elif reg_type == "input":
+                rr = await self.hass.async_add_executor_job(
+                    self.client.read_input_registers, addr, count, self._slave
+                )
+            else:
+                _LOGGER.debug("Unknown read.type '%s' for key=%s (skipping)", reg_type, ent.key)
+                continue
 
             regs = rr.registers
-            if word_order == "BA" and len(regs) == 2:
-                regs = [regs[1], regs[0]]
 
-            if dtype == "uint16":
-                val = regs[0]
-            elif dtype == "int16":
-                val = struct.unpack(">h", struct.pack(">H", regs[0]))[0]
-            elif dtype == "uint32":
-                val = (regs[0] << 16) | regs[1]
-            elif dtype == "int32":
-                val = struct.unpack(">i", struct.pack(">I", (regs[0] << 16) | regs[1]))[0]
-            elif dtype == "float32":
-                val = struct.unpack(">f", struct.pack(">I", (regs[0] << 16) | regs[1]))[0]
-            else:
-                val = regs[0]
+            # Bit-Entity aus einem 16-bit Register
+            if bit is not None:
+                raw16 = int(regs[0]) & 0xFFFF
+                data[ent.key] = bool((raw16 >> int(bit)) & 1)
+                continue
 
+            val = _decode_16_32(dtype, regs, word_order)
+
+            # scale beim read: multiplizieren
             scale = r.get("scale")
             if scale is not None:
                 try:
@@ -213,14 +256,25 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 except Exception:
                     pass
 
-            data[e.key] = val
+            data[ent.key] = val
 
         return data
 
-    async def write_holding(self, e: MappedEntity, value):
-        w = e.write
+    async def write_holding(self, ent: MappedEntity, value) -> None:
+        """
+        Write helper für Plattformen (number/switch/select/button).
+        Unterstützt:
+          - holding write 16-bit (write_register)
+          - holding-bit-switch (Read-Modify-Write via write.bit)
+        Reconnect/Retry: 2 Versuche
+        """
+        w = ent.write
         if not w:
             return
+
+        w_type = str(w.get("type", "holding"))
+        if w_type != "holding":
+            raise UpdateFailed(f"write.type '{w_type}' wird derzeit nicht unterstützt")
 
         addr = int(w["address"])
 
@@ -237,19 +291,21 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             self.client.read_holding_registers, addr, 1, self._slave
                         )
                         cur = int(rr.registers[0]) & 0xFFFF
-                        if value:
-                            cur = cur | (1 << bit)
+                        if bool(value):
+                            cur |= (1 << bit)
                         else:
-                            cur = cur & ~(1 << bit)
+                            cur &= ~(1 << bit)
                         await self.hass.async_add_executor_job(
                             self.client.write_register, addr, cur, self._slave
                         )
                     else:
+                        # scale beim write: UI-Wert durch scale teilen
                         scale = w.get("scale")
                         v = value
                         if scale is not None and float(scale) != 0.0:
                             v = float(value) / float(scale)
 
+                        # (hier bewusst 16-bit write; 32-bit write mit word_order können wir als nächstes ergänzen)
                         await self.hass.async_add_executor_job(
                             self.client.write_register, addr, int(v), self._slave
                         )
