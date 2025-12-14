@@ -1,1 +1,0 @@
-DOMAIN = "time_5min"

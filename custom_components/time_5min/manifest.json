@@ -1,8 +1,0 @@
-{
-  "domain": "time_5min",
-  "name": "Time (5min) Sensors",
-  "version": "1.0.0",
-  "documentation": "https://projects.hammerschmidt.at/time_5min",
-  "requirements": [],
-  "codeowners": []
-}
