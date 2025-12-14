@@ -33,7 +33,7 @@
         "title": "Device mapping",
         "description": "Select a mapping profile",
         "data": {
-          "mapping_file": "Mapping JSON"
+          "mapping_file": "Mapping YAML"
         }
       }
     },

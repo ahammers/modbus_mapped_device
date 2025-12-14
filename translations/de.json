@@ -33,7 +33,7 @@
         "title": "Geräte-Mapping",
         "description": "Bitte ein Mapping-Profil auswählen",
         "data": {
-          "mapping_file": "Mapping-JSON"
+          "mapping_file": "Mapping-YAML"
         }
       }
     },
