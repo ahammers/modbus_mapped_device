@@ -23,10 +23,18 @@ class MappedEntity:
     platform: str
     key: str
     name: str
+
+    # YAML mapping sections
     read: dict | None
     write: dict | None
+
+    # Common optional presentation
     unit: str | None = None
     icon: str | None = None
+    device_class: str | None = None
+    state_class: str | None = None
+
+    # Platform-specific extras
     options: list | None = None
     min: float | None = None
     max: float | None = None
@@ -94,6 +102,8 @@ def load_mapping(filename: str) -> tuple[dict, list[MappedEntity]]:
             write=e.get("write"),
             unit=e.get("unit"),
             icon=e.get("icon"),
+            device_class=e.get("device_class"),
+            state_class=e.get("state_class"),
             options=e.get("options"),
             min=e.get("min"),
             max=e.get("max"),
@@ -108,6 +118,7 @@ def load_mapping(filename: str) -> tuple[dict, list[MappedEntity]]:
 def _decode_16_32(dtype: str, regs: list[int], word_order: str) -> int | float:
     regs = [int(r) & 0xFFFF for r in regs]
 
+    # Word swap (only for 32-bit)
     if word_order == "BA" and len(regs) == 2:
         regs = [regs[1], regs[0]]
 
@@ -124,7 +135,6 @@ def _decode_16_32(dtype: str, regs: list[int], word_order: str) -> int | float:
     if dtype == "float32":
         return struct.unpack(">f", struct.pack(">I", raw))[0]
 
-    # fallback
     return regs[0]
 
 
@@ -139,7 +149,9 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.device = device
         self._slave = int(entry.data[CONF_SLAVE_ID])
 
-        # Backwards-compatible "mapping" view (für deine bestehenden platform.py Dateien)
+        # Backwards-compatible API expected by existing platform files:
+        # - coordinator.mapping.entities
+        # - coordinator.mapping.device_name / manufacturer / model
         self.mapping = SimpleNamespace(
             entities=self.entities,
             device_name=device.get("name", "Modbus Device"),
@@ -204,7 +216,7 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             reg_type = str(r.get("type", "holding"))
             addr = int(r["address"])
 
-            # coils/discretes -> bool
+            # coils/discretes: bool value
             if reg_type == "coil":
                 rr = await self.hass.async_add_executor_job(
                     self.client.read_coils, addr, 1, self._slave
@@ -219,7 +231,7 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 data[ent.key] = bool(rr.bits[0])
                 continue
 
-            # holding/input -> register values (+ optional bit extraction)
+            # holding/input registers
             dtype = str(r.get("data_type", "uint16"))
             word_order = str(r.get("word_order", "AB"))
             bit = r.get("bit", None)
@@ -240,7 +252,7 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             regs = rr.registers
 
-            # Bit-Entity aus einem 16-bit Register
+            # Bit-Extraction aus 16-bit Register (für binary_sensor aus holding/input)
             if bit is not None:
                 raw16 = int(regs[0]) & 0xFFFF
                 data[ent.key] = bool((raw16 >> int(bit)) & 1)
@@ -248,7 +260,7 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             val = _decode_16_32(dtype, regs, word_order)
 
-            # scale beim read: multiplizieren
+            # read-scale multiplizieren
             scale = r.get("scale")
             if scale is not None:
                 try:
@@ -260,13 +272,59 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         return data
 
+    # ---------------------------------------------------------------------
+    # Backwards-compatible write API expected by earlier platform files
+    # ---------------------------------------------------------------------
+
+    async def async_write_holding(self, address: int, data_type: str, value: float | int, scale: float | None) -> None:
+        """
+        Old API used by number.py (and others in earlier version):
+          coordinator.async_write_holding(address=..., data_type=..., value=..., scale=...)
+        This writes a SINGLE holding register (16-bit). (32-bit write can be added later.)
+        """
+        dummy = MappedEntity(
+            platform="number",
+            key=f"_write_{address}",
+            name=f"_write_{address}",
+            read=None,
+            write={
+                "type": "holding",
+                "address": int(address),
+                "data_type": str(data_type),
+                "scale": scale,
+            },
+        )
+        await self.write_holding(dummy, value)
+
+    async def async_write_coil(self, address: int, value: bool) -> None:
+        """
+        Optional old API (if any switch implementation calls it).
+        """
+        async with self._lock:
+            last: Exception | None = None
+            for _ in range(2):
+                try:
+                    await self._ensure()
+                    await self.hass.async_add_executor_job(
+                        self.client.write_coil, int(address), bool(value), self._slave
+                    )
+                    await self.async_request_refresh()
+                    return
+                except Exception as ex:
+                    last = ex
+                    await self._drop()
+            raise UpdateFailed(str(last) if last else "Write coil failed")
+
+    # ---------------------------------------------------------------------
+    # Preferred write API (entity-based)
+    # ---------------------------------------------------------------------
+
     async def write_holding(self, ent: MappedEntity, value) -> None:
         """
-        Write helper für Plattformen (number/switch/select/button).
-        Unterstützt:
-          - holding write 16-bit (write_register)
-          - holding-bit-switch (Read-Modify-Write via write.bit)
-        Reconnect/Retry: 2 Versuche
+        Entity-based write:
+        - holding-bit-switch via write.bit (read-modify-write)
+        - holding 16-bit via write_register
+        Retry+Reconnect: 2 attempts
         """
         w = ent.write
         if not w:
@@ -299,13 +357,13 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             self.client.write_register, addr, cur, self._slave
                         )
                     else:
-                        # scale beim write: UI-Wert durch scale teilen
+                        # write-scale: UI-Wert durch scale teilen
                         scale = w.get("scale")
                         v = value
                         if scale is not None and float(scale) != 0.0:
                             v = float(value) / float(scale)
 
-                        # (hier bewusst 16-bit write; 32-bit write mit word_order können wir als nächstes ergänzen)
+                        # aktuell 16-bit write (passt zu deinem number-Beispiel int16)
                         await self.hass.async_add_executor_job(
                             self.client.write_register, addr, int(v), self._slave
                         )
