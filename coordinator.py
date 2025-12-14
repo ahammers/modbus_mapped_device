@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import os
 import struct
 from dataclasses import dataclass
@@ -12,6 +13,8 @@ from homeassistant.util import yaml as ha_yaml
 
 from .const import *
 from .modbus_client import ModbusClientWrapper, TcpParams, RtuParams
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -110,32 +113,34 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         device, self.entities = load_mapping(entry.data[CONF_MAPPING])
         self.device = device
-        self._slave = entry.data[CONF_SLAVE_ID]
+        self._slave = int(entry.data[CONF_SLAVE_ID])
 
         transport = entry.data[CONF_TRANSPORT]
         tcp = rtu = None
         if transport == "tcp":
-            tcp = TcpParams(entry.data[CONF_HOST], entry.data[CONF_PORT])
+            tcp = TcpParams(entry.data[CONF_HOST], int(entry.data[CONF_PORT]))
         else:
             rtu = RtuParams(
                 entry.data[CONF_PORT_DEVICE],
-                entry.data[CONF_BAUDRATE],
-                entry.data[CONF_BYTESIZE],
-                entry.data[CONF_PARITY],
-                entry.data[CONF_STOPBITS],
+                int(entry.data[CONF_BAUDRATE]),
+                int(entry.data[CONF_BYTESIZE]),
+                str(entry.data[CONF_PARITY]),
+                int(entry.data[CONF_STOPBITS]),
             )
 
         self.client = ModbusClientWrapper(transport, tcp, rtu)
 
         super().__init__(
             hass,
+            logger=_LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(minutes=entry.data[CONF_SCAN_INTERVAL]),
+            update_interval=timedelta(minutes=int(entry.data[CONF_SCAN_INTERVAL])),
         )
 
     async def _ensure(self):
         if not self._connected:
-            if not await self.hass.async_add_executor_job(self.client.connect):
+            ok = await self.hass.async_add_executor_job(self.client.connect)
+            if not ok:
                 raise UpdateFailed("Connect failed")
             self._connected = True
 
@@ -168,8 +173,13 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             dtype = r.get("data_type", "uint16")
             word_order = r.get("word_order", "AB")  # AB default, BA swapped
 
-            # NOTE: In diesem vereinfachten Reader lesen wir Holding-Register.
-            # Wenn du input/coil/discrete brauchst, kann man das analog erweitern.
+            # Aktuell: Beispiel-Implementation liest Holding-Register.
+            # (Wenn du input/coil/discrete in der Runtime brauchst, sag Bescheid, dann erweitern wir das sauber.)
+            if reg_type != "holding":
+                # fürs Debugging sichtbar machen statt stillschweigend falsch zu lesen
+                _LOGGER.debug("Skipping non-holding read (%s) for key=%s", reg_type, e.key)
+                continue
+
             count = 2 if str(dtype).endswith("32") else 1
 
             rr = await self.hass.async_add_executor_job(
@@ -196,7 +206,6 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             else:
                 val = regs[0]
 
-            # optional scale im read
             scale = r.get("scale")
             if scale is not None:
                 try:
@@ -236,7 +245,6 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                             self.client.write_register, addr, cur, self._slave
                         )
                     else:
-                        # optional scale beim write
                         scale = w.get("scale")
                         v = value
                         if scale is not None and float(scale) != 0.0:
