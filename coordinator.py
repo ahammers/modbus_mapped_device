@@ -186,7 +186,7 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             hass,
             logger=_LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(minutes=int(entry.data[CONF_SCAN_INTERVAL])),
+            update_interval=timedelta(seconds=int(entry.data[CONF_SCAN_INTERVAL])),
         )
 
     async def async_close(self) -> None:

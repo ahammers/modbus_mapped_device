@@ -22,7 +22,7 @@ from .const import (
     CONF_SCAN_INTERVAL,
     DEFAULT_TCP_PORT,
     DEFAULT_SLAVE_ID,
-    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,  # now interpreted as SECONDS (default should be 60)
 )
 from .coordinator import list_mapping_files
 
@@ -35,6 +35,19 @@ def _mapping_selector() -> selector.SelectSelector:
         selector.SelectSelectorConfig(
             options=files,
             mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _scan_interval_selector(default_value: int) -> selector.NumberSelector:
+    # seconds, not minutes
+    return selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=1,
+            max=3600,
+            step=1,
+            mode=selector.NumberSelectorMode.BOX,
+            unit_of_measurement="s",
         )
     )
 
@@ -73,7 +86,10 @@ class ModbusMappedDeviceConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_HOST): str,
                     vol.Required(CONF_PORT, default=DEFAULT_TCP_PORT): int,
                     vol.Required(CONF_SLAVE_ID, default=DEFAULT_SLAVE_ID): int,
-                    vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
+                    # seconds
+                    vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): _scan_interval_selector(
+                        DEFAULT_SCAN_INTERVAL
+                    ),
                 }
             ),
         )
@@ -93,7 +109,10 @@ class ModbusMappedDeviceConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_PARITY, default="N"): vol.In(["N", "E", "O"]),
                     vol.Required(CONF_STOPBITS, default=1): vol.In([1, 2]),
                     vol.Required(CONF_SLAVE_ID, default=DEFAULT_SLAVE_ID): int,
-                    vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): int,
+                    # seconds
+                    vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): _scan_interval_selector(
+                        DEFAULT_SCAN_INTERVAL
+                    ),
                 }
             ),
         )
@@ -134,7 +153,11 @@ class ModbusMappedDeviceConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="options",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_SCAN_INTERVAL, default=entry.data[CONF_SCAN_INTERVAL]): int,
+                    # seconds
+                    vol.Required(
+                        CONF_SCAN_INTERVAL,
+                        default=entry.data[CONF_SCAN_INTERVAL],
+                    ): _scan_interval_selector(int(entry.data[CONF_SCAN_INTERVAL])),
                     vol.Required(CONF_MAPPING, default=entry.data[CONF_MAPPING]): _mapping_selector(),
                 }
             ),
