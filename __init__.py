@@ -3,8 +3,8 @@ from __future__ import annotations
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN, PLATFORMS, CONF_MAPPING
-from .coordinator import ModbusMappedCoordinator, load_mapping_sync
+from .const import DOMAIN, PLATFORMS
+from .coordinator import ModbusMappedCoordinator
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -13,11 +13,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    # Mapping file I/O MUST NOT run in the event loop -> run in executor
-    mapping_file = entry.data[CONF_MAPPING]
-    device, entities = await hass.async_add_executor_job(load_mapping_sync, mapping_file)
+    coordinator = ModbusMappedCoordinator(hass, entry)
 
-    coordinator = ModbusMappedCoordinator(hass, entry, device=device, entities=entities)
+    # First refresh loads mapping (in executor) + reads initial values
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
