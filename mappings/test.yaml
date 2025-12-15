@@ -48,7 +48,7 @@ entities:
 
   - platform: number
     key: holding110
-    name: Holding Register 101
+    name: Holding Register 110
     read:
       type: holding
       address: 110

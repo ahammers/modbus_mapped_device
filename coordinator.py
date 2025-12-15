@@ -150,14 +150,14 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._lock = asyncio.Lock()
         self._connected = False
 
-        # IMPORTANT: do NOT load mapping here (would do blocking file I/O)
+        # Mapping lazy-load
         self._mapping_file = entry.data[CONF_MAPPING]
         self._mapping_loaded = False
 
         self.device: dict = {}
         self.entities: list[MappedEntity] = []
 
-        # Backwards compatible mapping view for existing platform files
+        # Backwards compatible view for your existing platform files
         self.mapping = SimpleNamespace(
             entities=self.entities,
             device_name="Modbus Device",
@@ -212,7 +212,6 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.device = device
         self.entities = entities
 
-        # update backwards-compatible view
         self.mapping.entities = self.entities
         self.mapping.device_name = device.get("name", "Modbus Device")
         self.mapping.manufacturer = device.get("manufacturer")
@@ -221,7 +220,6 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._mapping_loaded = True
 
     async def _async_update_data(self) -> dict[str, Any]:
-        # Ensure mapping before first refresh, so platforms see entities after first_refresh
         await self._ensure_mapping_loaded()
 
         async with self._lock:
@@ -299,7 +297,7 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         return data
 
     # ---------------------------------------------------------------------
-    # Backwards-compatible write API expected by your platform files
+    # Backwards-compatible API expected by your platform files
     # ---------------------------------------------------------------------
 
     async def async_write_holding(
@@ -323,7 +321,16 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         await self.write_holding(dummy, value)
 
+    # ---------------------------------------------------------------------
+    # Preferred entity-based write API
+    # ---------------------------------------------------------------------
+
     async def write_holding(self, ent: MappedEntity, value) -> None:
+        """
+        Writes holding register(s).
+        IMPORTANT: Must NOT call async_request_refresh() while holding self._lock
+        (would deadlock by re-entering _async_update_data()).
+        """
         w = ent.write
         if not w:
             return
@@ -333,6 +340,7 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed(f"write.type '{w_type}' wird derzeit nicht unterstützt")
 
         addr = int(w["address"])
+        refresh_needed = False
 
         async with self._lock:
             last: Exception | None = None
@@ -358,15 +366,21 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         v = value
                         if scale is not None and float(scale) != 0.0:
                             v = float(value) / float(scale)
+
                         await self.hass.async_add_executor_job(
                             self.client.write_register, addr, int(v), self._slave
                         )
 
-                    await self.async_request_refresh()
-                    return
+                    refresh_needed = True
+                    break
 
                 except Exception as ex:
                     last = ex
                     await self._drop()
 
-            raise UpdateFailed(str(last) if last else "Write failed")
+            if not refresh_needed:
+                raise UpdateFailed(str(last) if last else "Write failed")
+
+        # OUTSIDE the lock -> no deadlock
+        # Schedule refresh in background; UI write should return fast.
+        self.hass.async_create_task(self.async_request_refresh())
