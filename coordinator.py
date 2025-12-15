@@ -307,4 +307,66 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         address: int,
         data_type: str,
         value: float | int,
-        scale
+        scale: float | None,
+    ) -> None:
+        dummy = MappedEntity(
+            platform="number",
+            key=f"_write_{address}",
+            name=f"_write_{address}",
+            read=None,
+            write={
+                "type": "holding",
+                "address": int(address),
+                "data_type": str(data_type),
+                "scale": scale,
+            },
+        )
+        await self.write_holding(dummy, value)
+
+    async def write_holding(self, ent: MappedEntity, value) -> None:
+        w = ent.write
+        if not w:
+            return
+
+        w_type = str(w.get("type", "holding"))
+        if w_type != "holding":
+            raise UpdateFailed(f"write.type '{w_type}' wird derzeit nicht unterstützt")
+
+        addr = int(w["address"])
+
+        async with self._lock:
+            last: Exception | None = None
+            for _ in range(2):
+                try:
+                    await self._ensure()
+
+                    if "bit" in w:
+                        bit = int(w["bit"])
+                        rr = await self.hass.async_add_executor_job(
+                            self.client.read_holding_registers, addr, 1, self._slave
+                        )
+                        cur = int(rr.registers[0]) & 0xFFFF
+                        if bool(value):
+                            cur |= (1 << bit)
+                        else:
+                            cur &= ~(1 << bit)
+                        await self.hass.async_add_executor_job(
+                            self.client.write_register, addr, cur, self._slave
+                        )
+                    else:
+                        scale = w.get("scale")
+                        v = value
+                        if scale is not None and float(scale) != 0.0:
+                            v = float(value) / float(scale)
+                        await self.hass.async_add_executor_job(
+                            self.client.write_register, addr, int(v), self._slave
+                        )
+
+                    await self.async_request_refresh()
+                    return
+
+                except Exception as ex:
+                    last = ex
+                    await self._drop()
+
+            raise UpdateFailed(str(last) if last else "Write failed")
