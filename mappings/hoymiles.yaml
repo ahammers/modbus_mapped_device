@@ -3,8 +3,10 @@ device:
   manufacturer: www.hammerschmidt.at
   model: multiple models
 
-# [Battery Charge/Discharge Parameters]
 entities:
+
+# [Battery Charge/Discharge Parameters]
+
   - platform: number
     key: battery_max_charge_power
     name: "Battery Max Charge Power"
@@ -153,4 +155,452 @@ entities:
     write:
       type: holding
       address: 314
+      data_type: uint16
+
+
+# [Battery Configuration Parameters]
+
+  - platform: select
+    key: battery_type
+    name: "Battery Type"
+    description: "Battery type selection"
+    values:
+      0: "No"
+      1: "Lithium battery"
+      2: "Lead storage"
+    read:
+      type: holding
+      address: 4100
+      data_type: uint16
+    write:
+      type: holding
+      address: 4100
+      data_type: uint16
+
+  - platform: select
+    key: bms_type
+    name: "BMS Type"
+    description: "Prototype of BMS"
+    values:
+      1: "Pylon LV"
+      2: "Pylon HV"
+      3: "Dyness HV"
+      4: "Dyness LV"
+      5: "Sunwoda LV"
+      6: "Uz LV"
+      7: "Soluna HV"
+      8: "Soluna LV"
+      9: "Steltec LV"
+      10: "XinYi LV"
+      11: "Westwoods LV"
+      12: "JK HV"
+      13: "BYD LV"
+      14: "Uz HV"
+      15: "Zetara LV"
+      16: "FEB HV"
+      17: "Pytes LV"
+      18: "Dmegc LV"
+      19: "Weineng LV"
+      20: "Weineng HV"
+      21: "GSL LV"
+      22: "HOY LV"
+      23: "HOY HV"
+      24: "FEB LV"
+      25: "UHhome LV"
+      26: "UHhome HV"
+      27: "BYD HV"
+      28: "Vestwoods HV"
+      29: "Phylion HV"
+      30: "Hoymiles LV"
+      31: "Pholion LV"
+      32: "Wattsonic LV"
+      33: "Enershare HV"
+      34: "Beghelli LV"
+      35: "LvToPSUN LV"
+      36: "PYTES HV"
+      37: "LvToPSUN HV"
+      38: "RAJA HV"
+      39: "Felicity LV"
+    read:
+      type: holding
+      address: 4101
+      data_type: uint16
+    write:
+      type: holding
+      address: 4101
+      data_type: uint16
+
+  - platform: number
+    key: battery_capacity
+    name: "Battery Capacity"
+    unit: "Ah"
+    description: "Battery capacity"
+    read:
+      type: holding
+      address: 4102
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 4102
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: max_charge_current
+    name: "Max Charge Current"
+    unit: "A"
+    description: "Maximum charging current"
+    read:
+      type: holding
+      address: 4103
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 4103
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: max_discharge_current
+    name: "Max Discharge Current"
+    unit: "A"
+    description: "Maximum discharge current"
+    read:
+      type: holding
+      address: 4104
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 4104
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: float_voltage
+    name: "Float Voltage"
+    unit: "V"
+    description: "Float charge voltage"
+    read:
+      type: holding
+      address: 4105
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 4105
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: absorption_voltage
+    name: "Absorption Voltage"
+    unit: "V"
+    description: "CV voltage"
+    read:
+      type: holding
+      address: 4106
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 4106
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: end_of_charge_current
+    name: "End Of Charge Current"
+    unit: "A"
+    description: "Charge cut-off current"
+    read:
+      type: holding
+      address: 4107
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 4107
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: equalization_voltage
+    name: "Equalization Voltage"
+    unit: "V"
+    description: "Equalize the charge voltage"
+    read:
+      type: holding
+      address: 4108
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 4108
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: equalization_interval_days
+    name: "Equalization Interval Days"
+    unit: "d"
+    description: "Equalize the charging interval"
+    read:
+      type: holding
+      address: 4109
+      data_type: uint16
+    write:
+      type: holding
+      address: 4109
+      data_type: uint16
+
+  - platform: number
+    key: equalization_time
+    name: "Equalization Time"
+    unit: "min"
+    description: "Equalize the charging time"
+    read:
+      type: holding
+      address: 4110
+      data_type: uint16
+    write:
+      type: holding
+      address: 4110
+      data_type: uint16
+
+  - platform: number
+    key: temperature_correction_factor
+    name: "Temperature Correction Factor"
+    unit: "mV/°C/cell"
+    description: "Temperature correction factor"
+    read:
+      type: holding
+      address: 4113
+      data_type: uint16
+    write:
+      type: holding
+      address: 4113
+      data_type: uint16
+
+  - platform: number
+    key: initial_resistance
+    name: "Initial Resistance"
+    unit: "mΩ"
+    read:
+      type: holding
+      address: 4114
+      data_type: uint16
+    write:
+      type: holding
+      address: 4114
+      data_type: uint16
+
+  - platform: select
+    key: cfg_mult_pcs_bms_flag
+    name: "CfgMultPcsBMSFlag"
+    values:
+      0: "Disable"
+      1: "Enable"
+    read:
+      type: holding
+      address: 4115
+      data_type: uint16
+    write:
+      type: holding
+      address: 4115
+      data_type: uint16
+
+  - platform: number
+    key: end_charge_voltage
+    name: "EndChargeVoltage"
+    unit: "V"
+    description: "Cut-off charge voltage"
+    read:
+      type: holding
+      address: 4117
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 4117
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: equalization_charge_timeout
+    name: "Equalization ChargeTimeOut"
+    unit: "min"
+    description: "Equalize charging delay time"
+    read:
+      type: holding
+      address: 4118
+      data_type: uint16
+    write:
+      type: holding
+      address: 4118
+      data_type: uint16
+
+  - platform: select
+    key: equalization_enable
+    name: "Equalization Enable"
+    minimum: 0
+    maximum: 1
+    values:
+      0: "Disable"
+      1: "Enable"
+    read:
+      type: holding
+      address: 4119
+      data_type: uint16
+    write:
+      type: holding
+      address: 4119
+      data_type: uint16
+
+# [Inverter EMS Parameters]
+
+  - platform: select
+    key: ems_mode
+    name: "Ems Mode"
+    values:
+      0: "Self-Use"
+      1: "Economical Mode"
+      2: "Backup Mode"
+      3: "Pure Off-Grid Mode"
+      4: "Force Charge Mode"
+      5: "Force Discharge Mode"
+      6: "Peak-shaving Mode"
+      7: "TOU Mode"
+    read:
+      type: holding
+      address: 4300
+      data_type: uint16
+    write:
+      type: holding
+      address: 4300
+      data_type: uint16
+
+  - platform: number
+    key: self_used_soc
+    name: "Self-Used SOC"
+    unit: "%"
+    minimum: 10
+    maximum: 100
+    description: "Reserved SOC in self-use mode"
+    read:
+      type: holding
+      address: 4301
+      data_type: uint16
+    write:
+      type: holding
+      address: 4301
+      data_type: uint16
+
+  - platform: number
+    key: backup_soc
+    name: "Back-up SOC"
+    unit: "%"
+    minimum: 60
+    maximum: 100
+    description: "Reserved SOC in back-up mode"
+    read:
+      type: holding
+      address: 4302
+      data_type: uint16
+    write:
+      type: holding
+      address: 4302
+      data_type: uint16
+
+  - platform: number
+    key: force_charge_soc
+    name: "Force Charge SOC"
+    unit: "%"
+    minimum: 10
+    maximum: 100
+    description: "Max SOC in force charge mode"
+    read:
+      type: holding
+      address: 4303
+      data_type: uint16
+    write:
+      type: holding
+      address: 4303
+      data_type: uint16
+
+  - platform: number
+    key: maximum_charge_power
+    name: "Maximum Charge Power"
+    unit: "%"
+    description: "Maximum charge power rate"
+    read:
+      type: holding
+      address: 4304
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 4304
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: force_discharge_soc
+    name: "Force Disarge SOC"
+    unit: "%"
+    description: "Max SOC in force discharge mode"
+    read:
+      type: holding
+      address: 4305
+      data_type: uint16
+    write:
+      type: holding
+      address: 4305
+      data_type: uint16
+
+  - platform: number
+    key: maximum_discharge_power
+    name: "Maximum Discharge Power"
+    unit: "%"
+    description: "Maximum discharge power rate"
+    read:
+      type: holding
+      address: 4306
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 4306
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: economic_mode_soc
+    name: "Economic Mode SOC"
+    unit: "%"
+    description: "Reserved SOC in economic mode"
+    read:
+      type: holding
+      address: 4307
+      data_type: uint16
+    write:
+      type: holding
+      address: 4307
+      data_type: uint16
+
+  - platform: number
+    key: economy_mode_date_number
+    name: "Economy Mode Date Number"
+    minimum: 1
+    maximum: 4
+    description: "The date segments number of economic mode"
+    read:
+      type: holding
+      address: 4308
+      data_type: uint16
+    write:
+      type: holding
+      address: 4308
       data_type: uint16
