@@ -1,0 +1,156 @@
+device:
+  name: Mapped Hoymiles Modbus Server
+  manufacturer: www.hammerschmidt.at
+  model: multiple models
+
+# [Battery Charge/Discharge Parameters]
+entities:
+  - platform: number
+    key: battery_max_charge_power
+    name: "Battery Max Charge Power"
+    unit: "%"
+    minimum: 10
+    maximum: 100
+    description: "Battery maximum charge power rate"
+    read:
+      type: holding
+      address: 306
+      data_type: uint16
+    write:
+      type: holding
+      address: 306
+      data_type: uint16
+
+  - platform: number
+    key: battery_max_discharge_power
+    name: "Battery Max Discharge Power"
+    unit: "%"
+    minimum: 10
+    maximum: 100
+    description: "Battery maximum discharge power rate"
+    read:
+      type: holding
+      address: 307
+      data_type: uint16
+    write:
+      type: holding
+      address: 307
+      data_type: uint16
+
+  - platform: number
+    key: max_soc
+    name: "Max SOC"
+    unit: "%"
+    minimum: 10
+    maximum: 100
+    description: "Battery maximum charge SOC"
+    read:
+      type: holding
+      address: 308
+      data_type: uint16
+    write:
+      type: holding
+      address: 308
+      data_type: uint16
+
+  - platform: number
+    key: min_soc
+    name: "Min SOC"
+    unit: "%"
+    minimum: 10
+    maximum: 90
+    description: "Battery maximum Discharge SOC"
+    read:
+      type: holding
+      address: 309
+      data_type: uint16
+    write:
+      type: holding
+      address: 309
+      data_type: uint16
+
+  - platform: number
+    key: replenish_power
+    name: "Replenish Power"
+    unit: "W"
+    minimum: 0
+    maximum: 2000
+    description: "Replenish Power when soc lower than reserved"
+    read:
+      type: holding
+      address: 310
+      data_type: uint16
+    write:
+      type: holding
+      address: 310
+      data_type: uint16
+
+  - platform: number
+    key: rsvd_replenish_power
+    name: "Rsvd Replenish Power"
+    unit: "%"
+    minimum: 0
+    maximum: 10
+    description: "When the reserved power is lower than the set value, the power is allowed to be taken from the power grid"
+    read:
+      type: holding
+      address: 311
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 311
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: bat_grid_feed_power_when_peak
+    name: "Bat Grid Feed Power When Peak"
+    unit: "%"
+    minimum: 0
+    maximum: 10
+    description: "Peak battery feed-in power, when peak power, the battery feeds power to the grid"
+    read:
+      type: holding
+      address: 312
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 312
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: bat_discharge_power_when_partial_peak
+    name: "Bat Discharge Power When Partial Peak"
+    unit: "%"
+    minimum: 0
+    maximum: 10
+    description: "Flat battery discharge power, when flat power, the maximum discharge power of the battery"
+    read:
+      type: holding
+      address: 313
+      data_type: uint16
+      scale: 0.1
+    write:
+      type: holding
+      address: 313
+      data_type: uint16
+      scale: 0.1
+
+  - platform: number
+    key: lead_acid_bat_replenish_time
+    name: "Lead-Acid Bat Replenish Time"
+    unit: "min"
+    minimum: 0
+    maximum: 65535
+    description: "Lead-acid battery replenishment maintenance time"
+    read:
+      type: holding
+      address: 314
+      data_type: uint16
+    write:
+      type: holding
+      address: 314
+      data_type: uint16
