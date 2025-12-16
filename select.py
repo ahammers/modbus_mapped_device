@@ -3,69 +3,91 @@ from __future__ import annotations
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import ModbusMappedCoordinator, MappedEntity
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities) -> None:
     coordinator: ModbusMappedCoordinator = hass.data[DOMAIN][entry.entry_id]
     ents = [e for e in coordinator.mapping.entities if e.platform == "select"]
     async_add_entities([MappedSelect(coordinator, entry, e) for e in ents])
 
 
-class MappedSelect(SelectEntity):
+def _normalize_options(raw) -> list[tuple[str, int]]:
+    """
+    Returns list of (label, value).
+    Accepts:
+      - [{"label":"A","value":1}, ...]
+      - ["A","B"]  (value = index)
+    """
+    out: list[tuple[str, int]] = []
+    if not raw:
+        return out
+
+    if isinstance(raw, list):
+        for idx, item in enumerate(raw):
+            if isinstance(item, dict):
+                label = item.get("label")
+                value = item.get("value")
+                if isinstance(label, str) and isinstance(value, int):
+                    out.append((label, value))
+            elif isinstance(item, str):
+                out.append((item, idx))
+    return out
+
+
+class MappedSelect(CoordinatorEntity[ModbusMappedCoordinator], SelectEntity):
     def __init__(self, coordinator: ModbusMappedCoordinator, entry: ConfigEntry, ent: MappedEntity) -> None:
-        self.coordinator = coordinator
-        self.entry = entry
-        self.ent = ent
+        super().__init__(coordinator)
+
+        self._entry = entry
+        self._ent = ent
 
         self._attr_unique_id = f"{entry.entry_id}:{ent.key}"
         self._attr_name = ent.name
-        self._attr_icon = ent.icon
 
-        self._opts = getattr(ent, "options", [])
-        self._attr_options = [o["label"] for o in self._opts]
+        icon = getattr(ent, "icon", None)
+        if icon:
+            self._attr_icon = icon
 
-    @property
-    def device_info(self) -> DeviceInfo:
-        m = self.coordinator.mapping
-        return DeviceInfo(
-            identifiers={(DOMAIN, self.entry.entry_id)},
-            name=m.device_name,
-            manufacturer=m.manufacturer,
-            model=m.model,
-        )
+        description = getattr(ent, "description", None)
+        if description:
+            self._attr_entity_description = description
 
-    @property
-    def available(self) -> bool:
-        return self.coordinator.last_update_success
+        self._options = _normalize_options(getattr(ent, "options", None))
+        self._attr_options = [lbl for (lbl, _val) in self._options]
+
+        self._attr_extra_state_attributes = {"key": ent.key}
+        if description:
+            self._attr_extra_state_attributes["description"] = description
 
     @property
-    def current_option(self):
-        raw = self.coordinator.data.get(self.ent.key)
-        if raw is None:
+    def current_option(self) -> str | None:
+        v = self.coordinator.data.get(self._ent.key)
+        if v is None:
             return None
-        for o in self._opts:
-            if int(o["value"]) == int(raw):
-                return o["label"]
+        try:
+            iv = int(v)
+        except Exception:
+            return None
+
+        for lbl, val in self._options:
+            if val == iv:
+                return lbl
         return None
 
     async def async_select_option(self, option: str) -> None:
-        w = self.ent.write
-        if not w:
+        # Map label -> value
+        val = None
+        for lbl, v in self._options:
+            if lbl == option:
+                val = v
+                break
+        if val is None:
             return
-        match = next((o for o in self._opts if o["label"] == option), None)
-        if match is None:
-            return
-        await self.coordinator.async_write_holding(
-            address=w["address"],
-            data_type=w.get("data_type", "uint16"),
-            value=int(match["value"]),
-            scale=w.get("scale"),
-        )
 
-    async def async_added_to_hass(self) -> None:
-        self.async_on_remove(self.coordinator.async_add_listener(self.async_write_ha_state))
+        # Requires write section
+        if getattr(self._ent, "write", None):
+            await self.coordinator.write_holding(self._ent, val)
