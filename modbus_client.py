@@ -9,12 +9,10 @@ from pymodbus.client import ModbusSerialClient, ModbusTcpClient
 
 _LOGGER = logging.getLogger(__name__)
 
-
 @dataclass(frozen=True)
 class TcpParams:
     host: str
     port: int
-
 
 @dataclass(frozen=True)
 class RtuParams:
@@ -23,7 +21,6 @@ class RtuParams:
     bytesize: int
     parity: str
     stopbits: int
-
 
 class ModbusClientWrapper:
     """
@@ -46,9 +43,14 @@ class ModbusClientWrapper:
         if self._client is None:
             if self._transport == "tcp":
                 assert self._tcp is not None
+                _LOGGER.debug("Attempting TCP connection with parameters: host=%s, port=%d", self._tcp.host, self._tcp.port)
                 self._client = ModbusTcpClient(host=self._tcp.host, port=self._tcp.port)
             else:
                 assert self._rtu is not None
+                _LOGGER.debug(
+                    "Attempting RTU connection with parameters: port=%s, baudrate=%d, bytesize=%d, parity=%s, stopbits=%d",
+                    self._rtu.port, self._rtu.baudrate, self._rtu.bytesize, self._rtu.parity, self._rtu.stopbits
+                )
                 self._client = ModbusSerialClient(
                     port=self._rtu.port,
                     baudrate=self._rtu.baudrate,
@@ -59,18 +61,26 @@ class ModbusClientWrapper:
                 )
 
         try:
-            return bool(self._client.connect())
+            _LOGGER.debug("Connecting to Modbus client...")
+            success = bool(self._client.connect())
+            if success:
+                _LOGGER.debug("Modbus connection established successfully.")
+            else:
+                _LOGGER.warning("Failed to establish Modbus connection.")
+            return success
         except Exception as ex:
-            _LOGGER.debug("Modbus connect failed: %s", ex, exc_info=True)
+            _LOGGER.error("Modbus connect failed: %s", ex, exc_info=True)
             return False
 
     def close(self) -> None:
         if self._client is None:
             return
         try:
+            _LOGGER.debug("Closing Modbus connection...")
             self._client.close()
-        except Exception:
-            pass
+            _LOGGER.debug("Modbus connection closed successfully.")
+        except Exception as ex:
+            _LOGGER.error("Failed to close Modbus connection: %s", ex, exc_info=True)
 
     # ---------- compatibility helper ----------
 
@@ -116,22 +126,28 @@ class ModbusClientWrapper:
     # ---------- read helpers ----------
 
     def read_holding_registers(self, address: int, count: int, slave: int):
+        _LOGGER.debug("Reading holding registers: address=%d, count=%d, slave=%d", address, count, slave)
         return self._call_with_slave_compat("read_holding_registers", int(address), count=int(count), slave=int(slave))
 
     def read_input_registers(self, address: int, count: int, slave: int):
+        _LOGGER.debug("Reading input registers: address=%d, count=%d, slave=%d", address, count, slave)
         return self._call_with_slave_compat("read_input_registers", int(address), count=int(count), slave=int(slave))
 
     def read_coils(self, address: int, count: int, slave: int):
+        _LOGGER.debug("Reading coils: address=%d, count=%d, slave=%d", address, count, slave)
         return self._call_with_slave_compat("read_coils", int(address), count=int(count), slave=int(slave))
 
     def read_discrete_inputs(self, address: int, count: int, slave: int):
+        _LOGGER.debug("Reading discrete inputs: address=%d, count=%d, slave=%d", address, count, slave)
         return self._call_with_slave_compat("read_discrete_inputs", int(address), count=int(count), slave=int(slave))
 
     # ---------- write helpers ----------
 
     def write_register(self, address: int, value: int, slave: int):
+        _LOGGER.debug("Writing to register: address=%d, value=%d, slave=%d", address, value, slave)
         # pymodbus API name is "write_register"
         return self._call_with_slave_compat("write_register", int(address), int(value), slave=int(slave))
 
     def write_coil(self, address: int, value: bool, slave: int):
+        _LOGGER.debug("Writing to coil: address=%d, value=%s, slave=%d", address, value, slave)
         return self._call_with_slave_compat("write_coil", int(address), bool(value), slave=int(slave))
