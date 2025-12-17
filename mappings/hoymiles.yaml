@@ -530,23 +530,23 @@ entities:
   # [Meters Parameters]
   # ------------------------------------------------------------
 
-  - platform: sensor
-    key: grid_total_active_power
-    name: "Grid Total Active Power"
-    unit: "W"
-    read:
-      type: input
-      address: 1814
-      data_type: int32
+#  - platform: sensor
+#    key: grid_total_active_power
+#    name: "Grid Total Active Power"
+#    unit: "W"
+#    read:
+#      type: input
+#      address: 1814
+#      data_type: int32
 
-  - platform: sensor
-    key: grid_total_reactive_power
-    name: "Grid Total Reactive Power"
-    unit: "var"
-    read:
-      type: input
-      address: 1822
-      data_type: int32
+#  - platform: sensor
+#    key: grid_total_reactive_power
+#    name: "Grid Total Reactive Power"
+#    unit: "var"
+#    read:
+#      type: input
+#      address: 1822
+#      data_type: int32
 
   # ------------------------------------------------------------
   # [Battery Cluster Parameters]
