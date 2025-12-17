@@ -88,7 +88,7 @@ entities:
 #      data_type: uint16
 #      scale: 0.1
 
-  - platform: number
+  - platform: sensor
     key: max_charge_current
     name: "Max Charge Current (Holding 4103, uint16)"
     unit: "A"
@@ -104,7 +104,7 @@ entities:
 #      data_type: uint16
 #      scale: 0.1
 
-  - platform: number
+  - platform: sensor
     key: max_discharge_current
     name: "Max Discharge Current (Holding 4104, uint16)"
     unit: "A"
@@ -127,7 +127,7 @@ entities:
   - platform: select
     key: ems_mode
     name: "EMS Mode (Holding 4300, uint16)"
-    values:
+    options:
       0: "Self-Use"
       1: "Economical Mode"
       2: "Backup Mode"
@@ -275,7 +275,7 @@ entities:
   - platform: select
     key: work_status
     name: "Work Status (Input 0, uint16)"
-    values:
+    options:
       0: "PowerInit"
       1: "StdbyMode"
       2: "GridOnTest"
@@ -325,4 +325,203 @@ entities:
       address: 26
       data_type: uint16
 
-  # … (rest analog gleich aufgebaut)
+  - platform: sensor
+    key: pv1_voltage
+    name: "PV1_Voltage (Input 27, uint16)"
+    unit: "V"
+    description: "PV1 voltage"
+    read:
+      type: input
+      address: 27
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: pv1_current
+    name: "PV1_Current (Input 28, int16)"
+    unit: "A"
+    description: "PV1 current"
+    read:
+      type: input
+      address: 28
+      data_type: int16
+      scale: 0.01
+
+  - platform: sensor
+    key: pv1_power
+    name: "PV1_Power (Input 29, uint16)"
+    unit: "W"
+    description: "PV1 power"
+    read:
+      type: input
+      address: 29
+      data_type: uint16
+
+  - platform: sensor
+    key: pv2_voltage
+    name: "PV2_Voltage (Input 30, uint16)"
+    unit: "V"
+    description: "PV2 voltage"
+    read:
+      type: input
+      address: 30
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: pv2_current
+    name: "PV2_Current (Input 31, int16)"
+    unit: "A"
+    description: "PV2 current"
+    read:
+      type: input
+      address: 31
+      data_type: int16
+      scale: 0.01
+
+  - platform: sensor
+    key: pv2_power
+    name: "PV2_Power (Input 32, uint16)"
+    unit: "W"
+    description: "PV2 power"
+    read:
+      type: input
+      address: 32
+      data_type: uint16
+
+  - platform: sensor
+    key: pv3_voltage
+    name: "PV3_Voltage (Input 33, uint16)"
+    unit: "V"
+    description: "PV3 voltage"
+    read:
+      type: input
+      address: 33
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: pv3_current
+    name: "PV3_Current (Input 34, int16)"
+    unit: "A"
+    description: "PV3 current"
+    read:
+      type: input
+      address: 34
+      data_type: int16
+      scale: 0.01
+
+  - platform: sensor
+    key: pv3_power
+    name: "PV3_Power (Input 35, uint16)"
+    unit: "W"
+    description: "PV3 power"
+    read:
+      type: input
+      address: 35
+      data_type: uint16
+
+  - platform: sensor
+    key: pv4_voltage
+    name: "PV4_Voltage (Input 36, uint16)"
+    unit: "V"
+    description: "PV4 voltage"
+    read:
+      type: input
+      address: 36
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: pv4_current
+    name: "PV4_Current (Input 37, int16)"
+    unit: "A"
+    description: "PV4 current"
+    read:
+      type: input
+      address: 37
+      data_type: int16
+      scale: 0.01
+
+  - platform: sensor
+    key: pv4_power
+    name: "PV4_Power (Input 38, uint16)"
+    unit: "W"
+    description: "PV4 power"
+    read:
+      type: input
+      address: 38
+      data_type: uint16
+
+  - platform: sensor
+    key: bat_total_power
+    name: "Bat Total Power (Input 45, int16)"
+    unit: "W"
+    description: "Battery total power"
+    read:
+      type: input
+      address: 45
+      data_type: int16
+
+  - platform: sensor
+    key: bat1_voltage
+    name: "Bat1 Voltage (Input 46, uint16)"
+    unit: "V"
+    description: "Battery voltage"
+    read:
+      type: input
+      address: 46
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: bat1_current_g3
+    name: "Bat1 Current (G3) (Input 48, int32)"
+    unit: "A"
+    description: "The current expansion bit fits the G3 model"
+    read:
+      type: input
+      address: 48
+      data_type: int32
+      scale: 0.01
+
+  - platform: sensor
+    key: bat1_power_g3
+    name: "Bat1 Power (G3) (Input 50, int32)"
+    unit: "W"
+    description: "The current expansion bit fits the G3 model"
+    read:
+      type: input
+      address: 50
+      data_type: int32
+
+  - platform: sensor
+    key: positive_bus_voltage
+    name: "Positive Bus Voltage (Input 58, uint16)"
+    unit: "V"
+    read:
+      type: input
+      address: 58
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: negative_bus_voltage
+    name: "Negative Bus Voltage (Input 59, uint16)"
+    unit: "V"
+    read:
+      type: input
+      address: 59
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: bus_voltage
+    name: "Bus Voltage (Input 60, uint16)"
+    unit: "V"
+    description: "DC bus voltage"
+    read:
+      type: input
+      address: 60
+      data_type: uint16
+      scale: 0.1
