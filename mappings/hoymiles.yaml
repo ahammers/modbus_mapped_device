@@ -284,7 +284,7 @@ entities:
       5: "GridOffMode"
       6: "ByPassMode"
     read:
-      type: holding
+      type: input
       address: 0
       data_type: uint16
 
@@ -293,7 +293,7 @@ entities:
     name: "Power DSP FM Version"
     description: "Power DSP firmware version"
     read:
-      type: holding
+      type: input
       address: 1
       data_type: uint16
 
@@ -302,7 +302,7 @@ entities:
     name: "SW Fault"
     description: "Software fault code"
     read:
-      type: holding
+      type: input
       address: 19
       data_type: uint32
 
@@ -311,7 +311,7 @@ entities:
     name: "HW Fault"
     description: "Hardware fault code"
     read:
-      type: holding
+      type: input
       address: 21
       data_type: uint32
 
@@ -321,7 +321,7 @@ entities:
     unit: "W"
     description: "PV total power"
     read:
-      type: holding
+      type: input
       address: 26
       data_type: uint16
 
@@ -331,7 +331,7 @@ entities:
     unit: "V"
     description: "PV1 voltage"
     read:
-      type: holding
+      type: input
       address: 27
       data_type: uint16
       scale: 0.1
@@ -342,7 +342,7 @@ entities:
     unit: "A"
     description: "PV1 current"
     read:
-      type: holding
+      type: input
       address: 28
       data_type: int16
       scale: 0.01
@@ -353,7 +353,7 @@ entities:
     unit: "W"
     description: "PV1 power"
     read:
-      type: holding
+      type: input
       address: 29
       data_type: uint16
 
@@ -363,7 +363,7 @@ entities:
     unit: "V"
     description: "PV2 voltage"
     read:
-      type: holding
+      type: input
       address: 30
       data_type: uint16
       scale: 0.1
@@ -374,7 +374,7 @@ entities:
     unit: "A"
     description: "PV2 current"
     read:
-      type: holding
+      type: input
       address: 31
       data_type: int16
       scale: 0.01
@@ -385,7 +385,7 @@ entities:
     unit: "W"
     description: "PV2 power"
     read:
-      type: holding
+      type: input
       address: 32
       data_type: uint16
 
@@ -395,7 +395,7 @@ entities:
     unit: "V"
     description: "PV3 voltage"
     read:
-      type: holding
+      type: input
       address: 33
       data_type: uint16
       scale: 0.1
@@ -406,7 +406,7 @@ entities:
     unit: "A"
     description: "PV3 current"
     read:
-      type: holding
+      type: input
       address: 34
       data_type: int16
       scale: 0.01
@@ -417,7 +417,7 @@ entities:
     unit: "W"
     description: "PV3 power"
     read:
-      type: holding
+      type: input
       address: 35
       data_type: uint16
 
@@ -427,7 +427,7 @@ entities:
     unit: "V"
     description: "PV4 voltage"
     read:
-      type: holding
+      type: input
       address: 36
       data_type: uint16
       scale: 0.1
@@ -438,7 +438,7 @@ entities:
     unit: "A"
     description: "PV4 current"
     read:
-      type: holding
+      type: input
       address: 37
       data_type: int16
       scale: 0.01
@@ -449,7 +449,7 @@ entities:
     unit: "W"
     description: "PV4 power"
     read:
-      type: holding
+      type: input
       address: 38
       data_type: uint16
 
@@ -459,7 +459,7 @@ entities:
     unit: "W"
     description: "Battery total power"
     read:
-      type: holding
+      type: input
       address: 45
       data_type: int16
 
@@ -469,7 +469,7 @@ entities:
     unit: "V"
     description: "Battery voltage"
     read:
-      type: holding
+      type: input
       address: 46
       data_type: uint16
       scale: 0.1
@@ -481,7 +481,7 @@ entities:
     unit: "A"
     description: "The current expansion bit fits the G1/G2 model"
     read:
-      type: holding
+      type: input
       address: 48
       data_type: int16
       scale: 0.01
@@ -492,7 +492,7 @@ entities:
     unit: "A"
     description: "The current expansion bit fits the G3 model"
     read:
-      type: holding
+      type: input
       address: 48
       data_type: int32
       scale: 0.01
@@ -503,7 +503,7 @@ entities:
     unit: "W"
     description: "The current expansion bit fits the G3 model"
     read:
-      type: holding
+      type: input
       address: 50
       data_type: int32
 
@@ -513,7 +513,7 @@ entities:
     unit: "W"
     description: "The current expansion bit fits the G1/G2 model"
     read:
-      type: holding
+      type: input
       address: 51
       data_type: int16
 
@@ -522,7 +522,7 @@ entities:
     name: "Positive Bus Voltage"
     unit: "V"
     read:
-      type: holding
+      type: input
       address: 58
       data_type: uint16
       scale: 0.1
@@ -532,7 +532,7 @@ entities:
     name: "Negative Bus Voltage"
     unit: "V"
     read:
-      type: holding
+      type: input
       address: 59
       data_type: uint16
       scale: 0.1
@@ -543,7 +543,7 @@ entities:
     unit: "V"
     description: "DC bus voltage"
     read:
-      type: holding
+      type: input
       address: 60
       data_type: uint16
       scale: 0.1
@@ -557,7 +557,7 @@ entities:
     name: "Grid Total Active Power"
     unit: "W"
     read:
-      type: holding
+      type: input
       address: 1814
       data_type: int32
 
@@ -566,7 +566,7 @@ entities:
     name: "Grid Total Reactive Power"
     unit: "var"
     read:
-      type: holding
+      type: input
       address: 1822
       data_type: int32
 
@@ -583,7 +583,7 @@ entities:
       2: "Phosphoric acid battery"
       3: "Simulated battery"
     read:
-      type: holding
+      type: input
       address: 1900
       data_type: uint16
 
@@ -594,7 +594,7 @@ entities:
       0: "Offline"
       1: "Online"
     read:
-      type: holding
+      type: input
       address: 1901
       data_type: uint16
 
@@ -606,7 +606,7 @@ entities:
       1: "Charge"
       2: "Discharge"
     read:
-      type: holding
+      type: input
       address: 1904
       data_type: uint16
 
@@ -614,7 +614,7 @@ entities:
     key: battery_fault_code
     name: "Fault Code"
     read:
-      type: holding
+      type: input
       address: 1905
       data_type: uint32
 
@@ -623,7 +623,7 @@ entities:
     name: "Total Capacity"
     unit: "kWh"
     read:
-      type: holding
+      type: input
       address: 1907
       data_type: uint32
       scale: 0.1
@@ -633,7 +633,7 @@ entities:
     name: "Battery Soc"
     unit: "%"
     read:
-      type: holding
+      type: input
       address: 1909
       data_type: uint16
 
@@ -642,7 +642,7 @@ entities:
     name: "Battery Soh"
     unit: "%"
     read:
-      type: holding
+      type: input
       address: 1910
       data_type: uint16
 
@@ -651,7 +651,7 @@ entities:
     name: "Battery Voltage"
     unit: "V"
     read:
-      type: holding
+      type: input
       address: 1911
       data_type: uint16
       scale: 0.1
@@ -661,7 +661,7 @@ entities:
     name: "Battery Current"
     unit: "A"
     read:
-      type: holding
+      type: input
       address: 1912
       data_type: int32
       scale: 0.1
@@ -671,7 +671,7 @@ entities:
     name: "Battery Power"
     unit: "W"
     read:
-      type: holding
+      type: input
       address: 1914
       data_type: int32
 
@@ -680,7 +680,7 @@ entities:
     name: "Max Charge Current"
     unit: "A"
     read:
-      type: holding
+      type: input
       address: 1916
       data_type: uint16
       scale: 0.1
@@ -690,7 +690,7 @@ entities:
     name: "Max Discharge Current"
     unit: "A"
     read:
-      type: holding
+      type: input
       address: 1917
       data_type: uint16
       scale: 0.1
@@ -700,7 +700,7 @@ entities:
     name: "Module Max Temperature"
     unit: "°C"
     read:
-      type: holding
+      type: input
       address: 1920
       data_type: int16
 
@@ -709,7 +709,7 @@ entities:
     name: "Module Min Temperature"
     unit: "°C"
     read:
-      type: holding
+      type: input
       address: 1921
       data_type: int16
 
@@ -718,7 +718,7 @@ entities:
     name: "Cell Max Temperature"
     unit: "°C"
     read:
-      type: holding
+      type: input
       address: 1922
       data_type: int16
 
@@ -727,7 +727,7 @@ entities:
     name: "Cell Min Temperature"
     unit: "°C"
     read:
-      type: holding
+      type: input
       address: 1923
       data_type: int16
 
@@ -736,7 +736,7 @@ entities:
     name: "Module Max Voltage"
     unit: "V"
     read:
-      type: holding
+      type: input
       address: 1924
       data_type: uint16
       scale: 0.1
@@ -746,7 +746,7 @@ entities:
     name: "Module Min Voltage"
     unit: "V"
     read:
-      type: holding
+      type: input
       address: 1925
       data_type: uint16
       scale: 0.1
@@ -756,7 +756,7 @@ entities:
     name: "Cell Max Voltage"
     unit: "V"
     read:
-      type: holding
+      type: input
       address: 1926
       data_type: uint16
       scale: 0.1
@@ -766,7 +766,7 @@ entities:
     name: "Cell Min Voltage"
     unit: "V"
     read:
-      type: holding
+      type: input
       address: 1927
       data_type: uint16
       scale: 0.1
