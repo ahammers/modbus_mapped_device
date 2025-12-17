@@ -770,3 +770,204 @@ entities:
       address: 1927
       data_type: uint16
       scale: 0.1
+
+  - platform: sensor
+    key: battery_cycle_count
+    name: "Battery Cycle Count"
+    read:
+      type: holding
+      address: 22175
+      data_type: uint16
+
+  - platform: sensor
+    key: cumulative_battery_charge
+    name: "Cumulative Battery Charge"
+    unit: "kWh"
+    read:
+      type: holding
+      address: 22176
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: cumulative_battery_discharge
+    name: "Cumulative Battery Discharge"
+    unit: "kWh"
+    read:
+      type: holding
+      address: 22177
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: single_charge_capacity
+    name: "Single charge capacity"
+    unit: "kWh"
+    read:
+      type: holding
+      address: 22178
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: single_discharge_quantity
+    name: "Single discharge quantity"
+    unit: "kWh"
+    read:
+      type: holding
+      address: 22179
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: rated_capacity
+    name: "Rated capacity"
+    unit: "kWh"
+    read:
+      type: holding
+      address: 22180
+      data_type: uint16
+      scale: 0.1
+
+  # Battery Status is a bitfield (Values contain bitN:Label) -> one entity per bit
+  - platform: binary_sensor
+    key: battery_status_full_charge_flag_r22197
+    name: "Battery Status - Full charge Flag"
+    minimum: 0
+    maximum: 1
+    read:
+      type: holding
+      address: 22197
+      data_type: uint16
+      bit: 0
+
+  - platform: binary_sensor
+    key: battery_status_empty_flag_r22197
+    name: "Battery Status - Empty Flag"
+    minimum: 0
+    maximum: 1
+    read:
+      type: holding
+      address: 22197
+      data_type: uint16
+      bit: 1
+
+  - platform: binary_sensor
+    key: battery_status_force_charge_request_flag_r22197
+    name: "Battery Status - Force Charge Request Flag"
+    minimum: 0
+    maximum: 1
+    read:
+      type: holding
+      address: 22197
+      data_type: uint16
+      bit: 2
+
+  - platform: binary_sensor
+    key: battery_status_full_charge_request_flag_r22197
+    name: "Battery Status - Full Charge Request Flag"
+    minimum: 0
+    maximum: 1
+    read:
+      type: holding
+      address: 22197
+      data_type: uint16
+      bit: 3
+
+  - platform: binary_sensor
+    key: battery_status_no_charge_flag_r22197
+    name: "Battery Status - No Charge Flag"
+    minimum: 0
+    maximum: 1
+    read:
+      type: holding
+      address: 22197
+      data_type: uint16
+      bit: 4
+
+  - platform: binary_sensor
+    key: battery_status_no_discharge_flag_r22197
+    name: "Battery Status - No Discharge Flag"
+    minimum: 0
+    maximum: 1
+    read:
+      type: holding
+      address: 22197
+      data_type: uint16
+      bit: 5
+
+  # ------------------------------------------------------------
+  # [Second-level Data Parameters]
+  # ------------------------------------------------------------
+
+  - platform: select
+    key: system_workstatus_r30000
+    name: "System WorkStatus"
+    values:
+      0: "PowerInit"
+      1: "StdbyMode"
+      2: "GridOnTest"
+      3: "GridOnMode"
+      4: "FaultMode"
+      5: "GridOffMode"
+      6: "ByPassMode"
+    read:
+      type: holding
+      address: 30000
+      data_type: uint16
+
+  - platform: sensor
+    key: pv_total_power_r30001
+    name: "PV Total Power"
+    unit: "W"
+    description: "PV Total Power (Internal + External)"
+    read:
+      type: holding
+      address: 30001
+      data_type: uint32
+
+  - platform: sensor
+    key: internal_pv_total_power
+    name: "Internal PV Total power"
+    unit: "W"
+    read:
+      type: holding
+      address: 30003
+      data_type: uint32
+
+  - platform: sensor
+    key: external_pv_total_power
+    name: "External PV Total Power"
+    unit: "W"
+    read:
+      type: holding
+      address: 30005
+      data_type: uint32
+
+  - platform: sensor
+    key: inv_active_power
+    name: "Inv Active Power"
+    unit: "W"
+    description: "Inverter combined active power"
+    read:
+      type: holding
+      address: 30007
+      data_type: int32
+
+  - platform: sensor
+    key: battery_power_r30009
+    name: "Battery Power"
+    unit: "W"
+    read:
+      type: holding
+      address: 30009
+      data_type: int32
+
+  - platform: sensor
+    key: grid_total_active_power_r30011
+    name: "Grid Total Active Power"
+    unit: "W"
+    read:
+      type: holding
+      address: 30011
+      data_type: int32
