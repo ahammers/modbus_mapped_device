@@ -474,18 +474,6 @@ entities:
       data_type: uint16
       scale: 0.1
 
-  # Address 48 exists twice in the source (G1/G2 vs G3). Both are kept as separate entities.
-  - platform: sensor
-    key: bat1_current_g1_g2
-    name: "Bat1 Current (G1/G2)"
-    unit: "A"
-    description: "The current expansion bit fits the G1/G2 model"
-    read:
-      type: input
-      address: 48
-      data_type: int16
-      scale: 0.01
-
   - platform: sensor
     key: bat1_current_g3
     name: "Bat1 Current (G3)"
@@ -506,16 +494,6 @@ entities:
       type: input
       address: 50
       data_type: int32
-
-  - platform: sensor
-    key: bat1_power_g1_g2
-    name: "Bat1 Power (G1/G2)"
-    unit: "W"
-    description: "The current expansion bit fits the G1/G2 model"
-    read:
-      type: input
-      address: 51
-      data_type: int16
 
   - platform: sensor
     key: positive_bus_voltage
