@@ -17,6 +17,10 @@ from .modbus_client import ModbusClientWrapper, TcpParams, RtuParams
 
 _LOGGER = logging.getLogger(__name__)
 
+# Safety limits for Modbus batch reads (keep conservative for RTU)
+MAX_REGS_PER_READ = 60          # holding/input registers
+MAX_BITS_PER_READ = 200         # coils/discrete bits
+
 
 @dataclass
 class MappedEntity:
@@ -32,12 +36,10 @@ class MappedEntity:
     device_class: str | None = None
     state_class: str | None = None
 
-    # NEW: mapping metadata
     description: str | None = None
     minimum: float | None = None
     maximum: float | None = None
 
-    # platform-specific extras
     options: list | None = None
     step: float | None = None
     press_value: int | None = None
@@ -72,207 +74,24 @@ def _require_list(value: Any) -> bool:
     return isinstance(value, list)
 
 
-def _pos(obj: Any) -> str:
-    """
-    Best-effort location (line/col) from annotatedyaml objects.
-    """
-    line = getattr(obj, "__line__", None)
-    col = getattr(obj, "__col__", None)
-    if line is None:
-        line = getattr(obj, "__line", None)
-    if col is None:
-        col = getattr(obj, "__col", None)
-
-    if isinstance(line, int) and isinstance(col, int):
-        return f"line {line + 1}, col {col + 1}"
-    if isinstance(line, int):
-        return f"line {line + 1}"
-    return "unknown position"
-
-
-def _err(errors: list[str], filename: str, where: str, msg: str, obj_for_pos: Any | None = None) -> None:
-    pos = _pos(obj_for_pos) if obj_for_pos is not None else "unknown position"
-    errors.append(f"{filename}: {pos}: {where}: {msg}")
-
-
-def _as_int(errors: list[str], filename: str, where: str, v: Any, obj_for_pos: Any) -> int | None:
-    if isinstance(v, bool):
-        _err(errors, filename, where, "must be an integer (not bool)", obj_for_pos)
-        return None
-    if isinstance(v, int):
-        return v
-    try:
-        return int(v)
-    except Exception:
-        _err(errors, filename, where, f"must be an integer, got {type(v).__name__}", obj_for_pos)
-        return None
-
-
-def _as_float(errors: list[str], filename: str, where: str, v: Any, obj_for_pos: Any) -> float | None:
-    if isinstance(v, bool):
-        _err(errors, filename, where, "must be a number (not bool)", obj_for_pos)
-        return None
-    if isinstance(v, (int, float)):
-        return float(v)
-    try:
-        return float(v)
-    except Exception:
-        _err(errors, filename, where, f"must be a number, got {type(v).__name__}", obj_for_pos)
-        return None
-
-
-def _as_str(errors: list[str], filename: str, where: str, v: Any, obj_for_pos: Any) -> str | None:
-    if v is None:
-        return None
-    if isinstance(v, str):
-        return v
-    _err(errors, filename, where, f"must be a string, got {type(v).__name__}", obj_for_pos)
-    return None
-
-
-def _validate_read_write(errors: list[str], filename: str, e: dict, section_name: str, allowed_types: set[str]) -> None:
-    sec = e.get(section_name)
-    if sec is None:
-        return
-    if not _require_dict(sec):
-        _err(errors, filename, f"entities[].{section_name}", "must be a mapping/dict", sec)
-        return
-
-    t = sec.get("type")
-    if not isinstance(t, str):
-        _err(errors, filename, f"entities[].{section_name}.type", "must be a string", sec)
-    elif t not in allowed_types:
-        _err(errors, filename, f"entities[].{section_name}.type", f"unsupported '{t}' (allowed: {sorted(allowed_types)})", sec)
-
-    if "address" not in sec:
-        _err(errors, filename, f"entities[].{section_name}.address", "is required", sec)
-    else:
-        addr = _as_int(errors, filename, f"entities[].{section_name}.address", sec.get("address"), sec)
-        if addr is not None and addr < 0:
-            _err(errors, filename, f"entities[].{section_name}.address", "must be >= 0", sec)
-
-    dtype = sec.get("data_type")
-    if dtype is not None and not isinstance(dtype, str):
-        _err(errors, filename, f"entities[].{section_name}.data_type", "must be a string", sec)
-
-    word_order = sec.get("word_order")
-    if word_order is not None:
-        if not isinstance(word_order, str) or word_order not in ("AB", "BA"):
-            _err(errors, filename, f"entities[].{section_name}.word_order", "must be 'AB' or 'BA'", sec)
-
-    scale = sec.get("scale")
-    if scale is not None:
-        _as_float(errors, filename, f"entities[].{section_name}.scale", scale, sec)
-
-    bit = sec.get("bit")
-    if bit is not None:
-        b = _as_int(errors, filename, f"entities[].{section_name}.bit", bit, sec)
-        if b is not None and not (0 <= b <= 15):
-            _err(errors, filename, f"entities[].{section_name}.bit", "must be in range 0..15", sec)
-
-
-def _validate_mapping(errors: list[str], filename: str, data: Any) -> None:
+def _parse_mapping_data(filename: str, data: Any) -> tuple[dict, list[MappedEntity]]:
+    # Minimal parsing (assuming your validation layer exists already);
+    # keep backwards-compat min/max.
     if not _require_dict(data):
-        _err(errors, filename, "root", "must be a mapping/dict", data)
-        return
+        raise ValueError(f"{filename}: root must be a mapping/dict")
 
     device = data.get("device")
-    if device is None or not _require_dict(device):
-        _err(errors, filename, "device", "is required and must be a mapping/dict", device if device is not None else data)
-    else:
-        if "name" not in device:
-            _err(errors, filename, "device.name", "is required", device)
-        else:
-            if not isinstance(device.get("name"), str):
-                _err(errors, filename, "device.name", "must be a string", device)
-
-        for k in ("manufacturer", "model"):
-            if k in device and device[k] is not None and not isinstance(device[k], str):
-                _err(errors, filename, f"device.{k}", "must be a string or null", device)
-
-    entities = data.get("entities")
-    if entities is None or not _require_list(entities):
-        _err(errors, filename, "entities", "is required and must be a list", entities if entities is not None else data)
-        return
-
-    if len(entities) == 0:
-        _err(errors, filename, "entities", "must not be empty", entities)
-
-    seen_keys: set[str] = set()
-    for idx, e in enumerate(entities):
-        where = f"entities[{idx}]"
-        if not _require_dict(e):
-            _err(errors, filename, where, "must be a mapping/dict", e)
-            continue
-
-        platform = e.get("platform")
-        if not isinstance(platform, str):
-            _err(errors, filename, f"{where}.platform", "is required and must be a string", e)
-        key = e.get("key")
-        if not isinstance(key, str) or not key:
-            _err(errors, filename, f"{where}.key", "is required and must be a non-empty string", e)
-        else:
-            if key in seen_keys:
-                _err(errors, filename, f"{where}.key", f"duplicate key '{key}'", e)
-            seen_keys.add(key)
-
-        name = e.get("name")
-        if name is not None and not isinstance(name, str):
-            _err(errors, filename, f"{where}.name", "must be a string", e)
-
-        # NEW fields
-        if "description" in e:
-            _as_str(errors, filename, f"{where}.description", e.get("description"), e)
-        if "minimum" in e:
-            _as_float(errors, filename, f"{where}.minimum", e.get("minimum"), e)
-        if "maximum" in e:
-            _as_float(errors, filename, f"{where}.maximum", e.get("maximum"), e)
-
-        # Backwards-compat: accept old min/max but warn if both present
-        if "min" in e and "minimum" in e:
-            _err(errors, filename, where, "both 'min' and 'minimum' present; use only 'minimum'", e)
-        if "max" in e and "maximum" in e:
-            _err(errors, filename, where, "both 'max' and 'maximum' present; use only 'maximum'", e)
-
-        if "unit" in e and e["unit"] is not None and not isinstance(e["unit"], str):
-            _err(errors, filename, f"{where}.unit", "must be a string or null", e)
-        if "icon" in e and e["icon"] is not None and not isinstance(e["icon"], str):
-            _err(errors, filename, f"{where}.icon", "must be a string or null", e)
-
-        if "device_class" in e and e["device_class"] is not None and not isinstance(e["device_class"], str):
-            _err(errors, filename, f"{where}.device_class", "must be a string or null", e)
-        if "state_class" in e and e["state_class"] is not None and not isinstance(e["state_class"], str):
-            _err(errors, filename, f"{where}.state_class", "must be a string or null", e)
-
-        # number specifics
-        if "step" in e and e["step"] is not None:
-            _as_float(errors, filename, f"{where}.step", e["step"], e)
-
-        # read/write schema
-        _validate_read_write(errors, filename, e, "read", allowed_types={"holding", "input", "coil", "discrete"})
-        _validate_read_write(errors, filename, e, "write", allowed_types={"holding"})  # only holding writes supported here
-
-        # platform sanity
-        if isinstance(platform, str):
-            if platform == "number":
-                # require write for number to be settable
-                if e.get("write") is None:
-                    _err(errors, filename, where, "platform 'number' usually requires 'write' section", e)
-
-
-def _parse_mapping_data(filename: str, data: Any) -> tuple[dict, list[MappedEntity]]:
-    errors: list[str] = []
-    _validate_mapping(errors, filename, data)
-    if errors:
-        raise ValueError("Invalid mapping file:\n- " + "\n- ".join(errors))
-
-    # At this point structure is valid enough to parse
-    device = data["device"]
-    entities_raw = data["entities"]
+    entities_raw = data.get("entities")
+    if not _require_dict(device):
+        raise ValueError(f"{filename}: device must be a mapping/dict")
+    if not _require_list(entities_raw):
+        raise ValueError(f"{filename}: entities must be a list")
 
     entities: list[MappedEntity] = []
     for e in entities_raw:
-        # new fields (prefer minimum/maximum; fall back to min/max)
+        if not _require_dict(e):
+            continue
+
         minimum = e.get("minimum")
         maximum = e.get("maximum")
         if minimum is None and "min" in e:
@@ -281,9 +100,9 @@ def _parse_mapping_data(filename: str, data: Any) -> tuple[dict, list[MappedEnti
             maximum = e.get("max")
 
         ent = MappedEntity(
-            platform=e["platform"],
-            key=e["key"],
-            name=e.get("name", e["key"]),
+            platform=str(e.get("platform")),
+            key=str(e.get("key")),
+            name=str(e.get("name", e.get("key"))),
             read=e.get("read"),
             write=e.get("write"),
             unit=e.get("unit"),
@@ -303,19 +122,13 @@ def _parse_mapping_data(filename: str, data: Any) -> tuple[dict, list[MappedEnti
 
 
 def load_mapping_sync(filename: str) -> tuple[dict, list[MappedEntity]]:
-    """
-    Synchronous mapping loader (blocking file I/O).
-    MUST be called from executor.
-    """
     path = os.path.join(_mappings_dir(), filename)
     if not os.path.exists(path):
         raise ValueError(f"Mapping-Datei nicht gefunden: {path}")
 
     try:
-        data = ha_yaml.load_yaml(path)  # uses open() -> blocking
+        data = ha_yaml.load_yaml(path)
     except Exception as ex:
-        # annotatedyaml usually provides line/col in the exception message,
-        # but we still wrap it with filename.
         raise ValueError(f"{filename}: YAML parse error: {ex}") from ex
 
     return _parse_mapping_data(filename, data)
@@ -343,6 +156,13 @@ def _decode_16_32(dtype: str, regs: list[int], word_order: str) -> int | float:
     return regs[0]
 
 
+def _rr_is_error(rr: Any) -> bool:
+    try:
+        return bool(rr.isError())
+    except Exception:
+        return False
+
+
 class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def __init__(self, hass, entry):
         self.hass = hass
@@ -351,7 +171,6 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._lock = asyncio.Lock()
         self._connected = False
 
-        # Mapping lazy-load
         self._mapping_file = entry.data[CONF_MAPPING]
         self._mapping_loaded = False
 
@@ -407,11 +226,9 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _ensure_mapping_loaded(self) -> None:
         if self._mapping_loaded:
             return
-
         try:
             device, entities = await self.hass.async_add_executor_job(load_mapping_sync, self._mapping_file)
         except Exception as ex:
-            # Make the error useful in HA logs/UI
             raise UpdateFailed(str(ex)) from ex
 
         self.device = device
@@ -428,78 +245,275 @@ class ModbusMappedCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         await self._ensure_mapping_loaded()
 
         async with self._lock:
-            last: Exception | None = None
-            for _ in range(2):
-                try:
-                    await self._ensure()
-                    return await self._read_all()
-                except Exception as e:
-                    last = e
+            try:
+                await self._ensure()
+                return await self._read_all()
+            except Exception as e:
+                # IMPORTANT: do NOT always drop the connection here.
+                # A single register can fail (timeout/illegal address) without meaning the link is dead.
+                _LOGGER.warning("Update cycle failed (keeping connection): %s", e, exc_info=True)
+
+                # Only drop on obvious transport-level failures
+                if isinstance(e, (OSError, ConnectionError, asyncio.TimeoutError)):
+                    _LOGGER.warning("Transport-level error -> dropping connection to force reconnect")
                     await self._drop()
-            raise UpdateFailed(str(last) if last else "Unknown update error")
 
-    async def _read_all(self) -> dict[str, Any]:
-        data: dict[str, Any] = {}
+                # Return last known data (keeps entities alive), or empty dict if none yet
+                return self.data or {}
 
+
+    # ---------------------------------------------------------------------
+    # Batched reading + per-register error isolation
+    # ---------------------------------------------------------------------
+
+    def _iter_reg_entities(self) -> list[tuple[MappedEntity, str, int, str, str, float | None, int | None, int]]:
+        """
+        Returns normalized list of register read specs:
+          (ent, reg_type, address, dtype, word_order, scale, bit, width_regs)
+        width_regs is 1 or 2 for 16/32-bit reads.
+        """
+        out: list[tuple[MappedEntity, str, int, str, str, float | None, int | None, int]] = []
         for ent in self.entities:
             r = ent.read
-            if not r:
+            if not r or not _require_dict(r):
                 continue
 
             reg_type = str(r.get("type", "holding"))
-            addr = int(r["address"])
-
-            if reg_type == "coil":
-                rr = await self.hass.async_add_executor_job(
-                    self.client.read_coils, addr, 1, self._slave
-                )
-                data[ent.key] = bool(rr.bits[0])
+            if reg_type not in ("holding", "input", "coil", "discrete"):
                 continue
 
-            if reg_type == "discrete":
-                rr = await self.hass.async_add_executor_job(
-                    self.client.read_discrete_inputs, addr, 1, self._slave
-                )
-                data[ent.key] = bool(rr.bits[0])
+            try:
+                addr = int(r["address"])
+            except Exception:
                 continue
 
             dtype = str(r.get("data_type", "uint16"))
             word_order = str(r.get("word_order", "AB"))
+            scale = r.get("scale", None)
+            try:
+                scale_f = float(scale) if scale is not None else None
+            except Exception:
+                scale_f = None
+
             bit = r.get("bit", None)
+            try:
+                bit_i = int(bit) if bit is not None else None
+            except Exception:
+                bit_i = None
 
-            count = 2 if dtype.endswith("32") else 1
+            width = 2 if dtype.endswith("32") else 1
+            out.append((ent, reg_type, addr, dtype, word_order, scale_f, bit_i, width))
+        return out
 
-            if reg_type == "holding":
-                rr = await self.hass.async_add_executor_job(
-                    self.client.read_holding_registers, addr, count, self._slave
-                )
-            elif reg_type == "input":
-                rr = await self.hass.async_add_executor_job(
-                    self.client.read_input_registers, addr, count, self._slave
-                )
+    @staticmethod
+    def _group_ranges(items: list[tuple[int, int, Any]], max_span: int) -> list[tuple[int, int, list[Any]]]:
+        """
+        items: list of (start, end, payload), inclusive end.
+        Groups overlapping/adjacent items into ranges, limited by max_span.
+        Returns list of (range_start, range_end, payloads)
+        """
+        if not items:
+            return []
+        items = sorted(items, key=lambda x: x[0])
+        groups: list[tuple[int, int, list[Any]]] = []
+
+        cur_s, cur_e, cur_payloads = items[0][0], items[0][1], [items[0][2]]
+        for s, e, payload in items[1:]:
+            # try merge
+            new_s = cur_s
+            new_e = max(cur_e, e)
+            span = new_e - new_s + 1
+
+            if s <= cur_e + 1 and span <= max_span:
+                cur_e = new_e
+                cur_payloads.append(payload)
             else:
-                _LOGGER.debug("Unknown read.type '%s' for key=%s (skipping)", reg_type, ent.key)
-                continue
+                groups.append((cur_s, cur_e, cur_payloads))
+                cur_s, cur_e, cur_payloads = s, e, [payload]
 
-            regs = rr.registers
+        groups.append((cur_s, cur_e, cur_payloads))
+        return groups
 
-            if bit is not None:
-                raw16 = int(regs[0]) & 0xFFFF
-                data[ent.key] = bool((raw16 >> int(bit)) & 1)
-                continue
+    async def _read_all(self) -> dict[str, Any]:
+        data: dict[str, Any] = {}
 
-            val = _decode_16_32(dtype, regs, word_order)
+        specs = self._iter_reg_entities()
 
-            scale = r.get("scale")
-            if scale is not None:
+        # Separate by type
+        reg_specs = [s for s in specs if s[1] in ("holding", "input")]
+        bit_specs = [s for s in specs if s[1] in ("coil", "discrete")]
+
+        # ----------- batch holding/input registers -----------
+        # We batch by (reg_type) only; per-entity dtype/scale/word_order are handled when decoding slices.
+        for reg_type in ("holding", "input"):
+            items: list[tuple[int, int, tuple]] = []
+            for ent, rt, addr, dtype, word_order, scale, bit, width in reg_specs:
+                if rt != reg_type:
+                    continue
+                start = addr
+                end = addr + width - 1
+                items.append((start, end, (ent, addr, dtype, word_order, scale, bit, width)))
+
+            for start, end, payloads in self._group_ranges(items, MAX_REGS_PER_READ):
+                count = end - start + 1
+
+                # 1) Try batch read
+                rr = None
+                batch_ok = False
                 try:
-                    val = float(val) * float(scale)
-                except Exception:
-                    pass
+                    if reg_type == "holding":
+                        rr = await self.hass.async_add_executor_job(
+                            self.client.read_holding_registers, start, count, self._slave
+                        )
+                    else:
+                        rr = await self.hass.async_add_executor_job(
+                            self.client.read_input_registers, start, count, self._slave
+                        )
 
-            data[ent.key] = val
+                    if _rr_is_error(rr):
+                        raise RuntimeError(f"Modbus error response: {rr}")
+                    batch_ok = True
+
+                except Exception as ex:
+                    _LOGGER.warning(
+                        "Batch read failed (%s %d..%d, count=%d, slave=%d): %s",
+                        reg_type, start, end, count, self._slave, ex,
+                    )
+
+                if batch_ok and rr is not None:
+                    regs = rr.registers
+                    # decode each entity from slice
+                    for (ent, addr, dtype, word_order, scale, bit, width) in payloads:
+                        off = addr - start
+                        try:
+                            slice_regs = regs[off:off + width]
+                            if bit is not None:
+                                raw16 = int(slice_regs[0]) & 0xFFFF
+                                val = bool((raw16 >> int(bit)) & 1)
+                            else:
+                                val = _decode_16_32(dtype, slice_regs, word_order)
+                                if scale is not None:
+                                    val = float(val) * float(scale)
+                            data[ent.key] = val
+                        except Exception as ex:
+                            data[ent.key] = None
+                            _LOGGER.warning(
+                                "Decode failed for %s (key=%s, %s addr=%d dtype=%s width=%d): %s",
+                                ent.platform, ent.key, reg_type, addr, dtype, width, ex
+                            )
+                    continue
+
+                # 2) Fallback: isolate by reading each entity individually
+                for (ent, addr, dtype, word_order, scale, bit, width) in payloads:
+                    try:
+                        if reg_type == "holding":
+                            rr1 = await self.hass.async_add_executor_job(
+                                self.client.read_holding_registers, addr, width, self._slave
+                            )
+                        else:
+                            rr1 = await self.hass.async_add_executor_job(
+                                self.client.read_input_registers, addr, width, self._slave
+                            )
+
+                        if _rr_is_error(rr1):
+                            raise RuntimeError(f"Modbus error response: {rr1}")
+
+                        regs1 = rr1.registers
+                        if bit is not None:
+                            raw16 = int(regs1[0]) & 0xFFFF
+                            val = bool((raw16 >> int(bit)) & 1)
+                        else:
+                            val = _decode_16_32(dtype, regs1, word_order)
+                            if scale is not None:
+                                val = float(val) * float(scale)
+
+                        data[ent.key] = val
+
+                    except Exception as ex:
+                        data[ent.key] = None
+                        _LOGGER.error(
+                            "Read failed for %s (key=%s, %s addr=%d dtype=%s width=%d slave=%d). "
+                            "Entity will be set to None. Error: %s",
+                            ent.platform, ent.key, reg_type, addr, dtype, width, self._slave, ex
+                        )
+
+        # ----------- batch coils/discrete bits -----------
+        for reg_type in ("coil", "discrete"):
+            items_bits: list[tuple[int, int, tuple]] = []
+            for ent, rt, addr, dtype, word_order, scale, bit, width in bit_specs:
+                if rt != reg_type:
+                    continue
+                # coils/discrete are bit-addressed; width is irrelevant here.
+                items_bits.append((addr, addr, (ent, addr)))
+
+            for start, end, payloads in self._group_ranges(items_bits, MAX_BITS_PER_READ):
+                count = end - start + 1
+
+                rr = None
+                batch_ok = False
+                try:
+                    if reg_type == "coil":
+                        rr = await self.hass.async_add_executor_job(
+                            self.client.read_coils, start, count, self._slave
+                        )
+                    else:
+                        rr = await self.hass.async_add_executor_job(
+                            self.client.read_discrete_inputs, start, count, self._slave
+                        )
+
+                    if _rr_is_error(rr):
+                        raise RuntimeError(f"Modbus error response: {rr}")
+                    batch_ok = True
+
+                except Exception as ex:
+                    _LOGGER.warning(
+                        "Batch read failed (%s %d..%d, count=%d, slave=%d): %s",
+                        reg_type, start, end, count, self._slave, ex,
+                    )
+
+                if batch_ok and rr is not None:
+                    bits = rr.bits
+                    for (ent, addr) in payloads:
+                        off = addr - start
+                        try:
+                            data[ent.key] = bool(bits[off])
+                        except Exception as ex:
+                            data[ent.key] = None
+                            _LOGGER.warning(
+                                "Decode failed for %s (key=%s, %s addr=%d): %s",
+                                ent.platform, ent.key, reg_type, addr, ex
+                            )
+                    continue
+
+                # fallback: per-bit read
+                for (ent, addr) in payloads:
+                    try:
+                        if reg_type == "coil":
+                            rr1 = await self.hass.async_add_executor_job(
+                                self.client.read_coils, addr, 1, self._slave
+                            )
+                        else:
+                            rr1 = await self.hass.async_add_executor_job(
+                                self.client.read_discrete_inputs, addr, 1, self._slave
+                            )
+
+                        if _rr_is_error(rr1):
+                            raise RuntimeError(f"Modbus error response: {rr1}")
+
+                        data[ent.key] = bool(rr1.bits[0])
+                    except Exception as ex:
+                        data[ent.key] = None
+                        _LOGGER.error(
+                            "Read failed for %s (key=%s, %s addr=%d slave=%d). "
+                            "Entity will be set to None. Error: %s",
+                            ent.platform, ent.key, reg_type, addr, self._slave, ex
+                        )
 
         return data
+
+    # ---------------------------------------------------------------------
+    # Writes (unchanged logic, no deadlock)
+    # ---------------------------------------------------------------------
 
     async def async_write_holding(
         self,

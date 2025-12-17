@@ -11,7 +11,7 @@ entities:
   - platform: number
     key: battery_max_charge_power
     name: "Battery Max Charge Power (Holding 306, uint16)"
-    unit: "%"
+    unit: "% ??"
     minimum: 10
     maximum: 100
     description: "Battery maximum charge power rate"
@@ -27,7 +27,7 @@ entities:
   - platform: number
     key: battery_max_discharge_power
     name: "Battery Max Discharge Power (Holding 307, uint16)"
-    unit: "%"
+    unit: "% ??"
     minimum: 10
     maximum: 100
     description: "Battery maximum discharge power rate"
@@ -82,11 +82,11 @@ entities:
       address: 4102
       data_type: uint16
       scale: 0.1
-    write:
-      type: holding
-      address: 4102
-      data_type: uint16
-      scale: 0.1
+#    write:
+#      type: holding
+#      address: 4102
+#      data_type: uint16
+#      scale: 0.1
 
   - platform: number
     key: max_charge_current
@@ -98,11 +98,11 @@ entities:
       address: 4103
       data_type: uint16
       scale: 0.1
-    write:
-      type: holding
-      address: 4103
-      data_type: uint16
-      scale: 0.1
+#    write:
+#      type: holding
+#      address: 4103
+#      data_type: uint16
+#      scale: 0.1
 
   - platform: number
     key: max_discharge_current
@@ -114,11 +114,11 @@ entities:
       address: 4104
       data_type: uint16
       scale: 0.1
-    write:
-      type: holding
-      address: 4104
-      data_type: uint16
-      scale: 0.1
+#    write:
+#      type: holding
+#      address: 4104
+#      data_type: uint16
+#      scale: 0.1
 
   # ------------------------------------------------------------
   # [Inverter EMS Parameters]

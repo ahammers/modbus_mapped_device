@@ -56,10 +56,29 @@ class MappedSelect(CoordinatorEntity[ModbusMappedCoordinator], SelectEntity):
         if description:
             self._attr_entity_description = description
 
-        self._options = _normalize_options(getattr(ent, "options", None))
-        self._attr_options = [lbl for (lbl, _val) in self._options]
+        self._pairs = _normalize_options(getattr(ent, "options", None))
 
-        self._attr_extra_state_attributes = {"key": ent.key}
+        # UI: show values by embedding them into displayed label
+        # displayed -> value
+        self._display_to_value: dict[str, int] = {}
+        # value -> displayed
+        self._value_to_display: dict[int, str] = {}
+
+        for label, value in self._pairs:
+            disp = f"{label} ({value})"
+            # handle duplicates gracefully
+            if disp in self._display_to_value and self._display_to_value[disp] != value:
+                disp = f"{label} ({value})*"
+            self._display_to_value[disp] = value
+            self._value_to_display[value] = disp
+
+        self._attr_options = list(self._display_to_value.keys())
+
+        # Helpful debug attributes (so you can inspect the mapping in HA UI)
+        self._attr_extra_state_attributes = {
+            "key": ent.key,
+            "enum_map": {label: value for (label, value) in self._pairs},
+        }
         if description:
             self._attr_extra_state_attributes["description"] = description
 
@@ -73,20 +92,14 @@ class MappedSelect(CoordinatorEntity[ModbusMappedCoordinator], SelectEntity):
         except Exception:
             return None
 
-        for lbl, val in self._options:
-            if val == iv:
-                return lbl
-        return None
+        # show "Label (value)" if known; else show raw value
+        return self._value_to_display.get(iv, str(iv))
 
     async def async_select_option(self, option: str) -> None:
-        # Map label -> value
-        val = None
-        for lbl, v in self._options:
-            if lbl == option:
-                val = v
-                break
-        if val is None:
+        # displayed label -> value
+        if option not in self._display_to_value:
             return
+        val = self._display_to_value[option]
 
         # Requires write section
         if getattr(self._ent, "write", None):
