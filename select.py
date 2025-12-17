@@ -19,13 +19,31 @@ def _normalize_options(raw) -> list[tuple[str, int]]:
     """
     Returns list of (label, value).
     Accepts:
+      - {0: "Label0", 1: "Label1", ...}  (dict with int keys - YAML format)
       - [{"label":"A","value":1}, ...]
       - ["A","B"]  (value = index)
     """
     out: list[tuple[str, int]] = []
     if not raw:
         return out
-
+    
+    # Handle dict format (from YAML: {0: "Self-Use", 1: "Economical Mode", ...})
+    if isinstance(raw, dict):
+        for key, label in raw.items():
+            try:
+                # Convert key to int (it might be parsed as string)
+                value = int(key)
+                # Ensure label is string
+                label_str = str(label) if not isinstance(label, str) else label
+                out.append((label_str, value))
+            except (ValueError, TypeError):
+                # Skip invalid entries
+                pass
+        # Sort by value for consistent ordering
+        out.sort(key=lambda x: x[1])
+        return out
+    
+    # Handle list format
     if isinstance(raw, list):
         for idx, item in enumerate(raw):
             if isinstance(item, dict):
@@ -35,8 +53,8 @@ def _normalize_options(raw) -> list[tuple[str, int]]:
                     out.append((label, value))
             elif isinstance(item, str):
                 out.append((item, idx))
+    
     return out
-
 
 class MappedSelect(CoordinatorEntity[ModbusMappedCoordinator], SelectEntity):
     def __init__(self, coordinator: ModbusMappedCoordinator, entry: ConfigEntry, ent: MappedEntity) -> None:
