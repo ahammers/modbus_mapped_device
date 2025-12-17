@@ -1,19 +1,16 @@
+---
 device:
-  name: Mapped Hoymiles Modbus Server
-  manufacturer: www.hammerschmidt.at
-  model: multiple models
-
+  name: Hoymiles Inverter 
+  manufacturer: Hoymiles
+  model: Multiple Hoymiles Inverter
 entities:
-
-# [Battery Charge/Discharge Parameters]
-
   - platform: number
     key: battery_max_charge_power
-    name: "Battery Max Charge Power"
+    name: Battery Max Charge Power
     unit: "%"
     minimum: 10
     maximum: 100
-    description: "Battery maximum charge power rate"
+    description: Battery maximum charge power rate
     read:
       type: holding
       address: 306
@@ -22,14 +19,13 @@ entities:
       type: holding
       address: 306
       data_type: uint16
-
   - platform: number
     key: battery_max_discharge_power
-    name: "Battery Max Discharge Power"
+    name: Battery Max Discharge Power
     unit: "%"
     minimum: 10
     maximum: 100
-    description: "Battery maximum discharge power rate"
+    description: Battery maximum discharge power rate
     read:
       type: holding
       address: 307
@@ -38,14 +34,13 @@ entities:
       type: holding
       address: 307
       data_type: uint16
-
   - platform: number
     key: max_soc
-    name: "Max SOC"
+    name: Max SOC
     unit: "%"
     minimum: 10
     maximum: 100
-    description: "Battery maximum charge SOC"
+    description: Battery maximum charge SOC
     read:
       type: holding
       address: 308
@@ -54,14 +49,13 @@ entities:
       type: holding
       address: 308
       data_type: uint16
-
   - platform: number
     key: min_soc
-    name: "Min SOC"
+    name: Min SOC
     unit: "%"
     minimum: 10
     maximum: 90
-    description: "Battery maximum Discharge SOC"
+    description: Battery maximum Discharge SOC
     read:
       type: holding
       address: 309
@@ -70,171 +64,11 @@ entities:
       type: holding
       address: 309
       data_type: uint16
-
-  - platform: number
-    key: replenish_power
-    name: "Replenish Power"
-    unit: "W"
-    minimum: 0
-    maximum: 2000
-    description: "Replenish Power when soc lower than reserved"
-    read:
-      type: holding
-      address: 310
-      data_type: uint16
-    write:
-      type: holding
-      address: 310
-      data_type: uint16
-
-  - platform: number
-    key: rsvd_replenish_power
-    name: "Rsvd Replenish Power"
-    unit: "%"
-    minimum: 0
-    maximum: 10
-    description: "When the reserved power is lower than the set value, the power is allowed to be taken from the power grid"
-    read:
-      type: holding
-      address: 311
-      data_type: uint16
-      scale: 0.1
-    write:
-      type: holding
-      address: 311
-      data_type: uint16
-      scale: 0.1
-
-  - platform: number
-    key: bat_grid_feed_power_when_peak
-    name: "Bat Grid Feed Power When Peak"
-    unit: "%"
-    minimum: 0
-    maximum: 10
-    description: "Peak battery feed-in power, when peak power, the battery feeds power to the grid"
-    read:
-      type: holding
-      address: 312
-      data_type: uint16
-      scale: 0.1
-    write:
-      type: holding
-      address: 312
-      data_type: uint16
-      scale: 0.1
-
-  - platform: number
-    key: bat_discharge_power_when_partial_peak
-    name: "Bat Discharge Power When Partial Peak"
-    unit: "%"
-    minimum: 0
-    maximum: 10
-    description: "Flat battery discharge power, when flat power, the maximum discharge power of the battery"
-    read:
-      type: holding
-      address: 313
-      data_type: uint16
-      scale: 0.1
-    write:
-      type: holding
-      address: 313
-      data_type: uint16
-      scale: 0.1
-
-  - platform: number
-    key: lead_acid_bat_replenish_time
-    name: "Lead-Acid Bat Replenish Time"
-    unit: "min"
-    minimum: 0
-    maximum: 65535
-    description: "Lead-acid battery replenishment maintenance time"
-    read:
-      type: holding
-      address: 314
-      data_type: uint16
-    write:
-      type: holding
-      address: 314
-      data_type: uint16
-
-
-# [Battery Configuration Parameters]
-
-  - platform: select
-    key: battery_type
-    name: "Battery Type"
-    description: "Battery type selection"
-    values:
-      0: "No"
-      1: "Lithium battery"
-      2: "Lead storage"
-    read:
-      type: holding
-      address: 4100
-      data_type: uint16
-    write:
-      type: holding
-      address: 4100
-      data_type: uint16
-
-  - platform: select
-    key: bms_type
-    name: "BMS Type"
-    description: "Prototype of BMS"
-    values:
-      1: "Pylon LV"
-      2: "Pylon HV"
-      3: "Dyness HV"
-      4: "Dyness LV"
-      5: "Sunwoda LV"
-      6: "Uz LV"
-      7: "Soluna HV"
-      8: "Soluna LV"
-      9: "Steltec LV"
-      10: "XinYi LV"
-      11: "Westwoods LV"
-      12: "JK HV"
-      13: "BYD LV"
-      14: "Uz HV"
-      15: "Zetara LV"
-      16: "FEB HV"
-      17: "Pytes LV"
-      18: "Dmegc LV"
-      19: "Weineng LV"
-      20: "Weineng HV"
-      21: "GSL LV"
-      22: "HOY LV"
-      23: "HOY HV"
-      24: "FEB LV"
-      25: "UHhome LV"
-      26: "UHhome HV"
-      27: "BYD HV"
-      28: "Vestwoods HV"
-      29: "Phylion HV"
-      30: "Hoymiles LV"
-      31: "Pholion LV"
-      32: "Wattsonic LV"
-      33: "Enershare HV"
-      34: "Beghelli LV"
-      35: "LvToPSUN LV"
-      36: "PYTES HV"
-      37: "LvToPSUN HV"
-      38: "RAJA HV"
-      39: "Felicity LV"
-    read:
-      type: holding
-      address: 4101
-      data_type: uint16
-    write:
-      type: holding
-      address: 4101
-      data_type: uint16
-
   - platform: number
     key: battery_capacity
-    name: "Battery Capacity"
-    unit: "Ah"
-    description: "Battery capacity"
+    name: Battery Capacity
+    unit: Ah
+    description: Battery capacity
     read:
       type: holding
       address: 4102
@@ -245,12 +79,11 @@ entities:
       address: 4102
       data_type: uint16
       scale: 0.1
-
   - platform: number
     key: max_charge_current
-    name: "Max Charge Current"
-    unit: "A"
-    description: "Maximum charging current"
+    name: Max Charge Current
+    unit: A
+    description: Maximum charging current
     read:
       type: holding
       address: 4103
@@ -261,12 +94,11 @@ entities:
       address: 4103
       data_type: uint16
       scale: 0.1
-
   - platform: number
     key: max_discharge_current
-    name: "Max Discharge Current"
-    unit: "A"
-    description: "Maximum discharge current"
+    name: Max Discharge Current
+    unit: A
+    description: Maximum discharge current
     read:
       type: holding
       address: 4104
@@ -277,202 +109,18 @@ entities:
       address: 4104
       data_type: uint16
       scale: 0.1
-
-  - platform: number
-    key: float_voltage
-    name: "Float Voltage"
-    unit: "V"
-    description: "Float charge voltage"
-    read:
-      type: holding
-      address: 4105
-      data_type: uint16
-      scale: 0.1
-    write:
-      type: holding
-      address: 4105
-      data_type: uint16
-      scale: 0.1
-
-  - platform: number
-    key: absorption_voltage
-    name: "Absorption Voltage"
-    unit: "V"
-    description: "CV voltage"
-    read:
-      type: holding
-      address: 4106
-      data_type: uint16
-      scale: 0.1
-    write:
-      type: holding
-      address: 4106
-      data_type: uint16
-      scale: 0.1
-
-  - platform: number
-    key: end_of_charge_current
-    name: "End Of Charge Current"
-    unit: "A"
-    description: "Charge cut-off current"
-    read:
-      type: holding
-      address: 4107
-      data_type: uint16
-      scale: 0.1
-    write:
-      type: holding
-      address: 4107
-      data_type: uint16
-      scale: 0.1
-
-  - platform: number
-    key: equalization_voltage
-    name: "Equalization Voltage"
-    unit: "V"
-    description: "Equalize the charge voltage"
-    read:
-      type: holding
-      address: 4108
-      data_type: uint16
-      scale: 0.1
-    write:
-      type: holding
-      address: 4108
-      data_type: uint16
-      scale: 0.1
-
-  - platform: number
-    key: equalization_interval_days
-    name: "Equalization Interval Days"
-    unit: "d"
-    description: "Equalize the charging interval"
-    read:
-      type: holding
-      address: 4109
-      data_type: uint16
-    write:
-      type: holding
-      address: 4109
-      data_type: uint16
-
-  - platform: number
-    key: equalization_time
-    name: "Equalization Time"
-    unit: "min"
-    description: "Equalize the charging time"
-    read:
-      type: holding
-      address: 4110
-      data_type: uint16
-    write:
-      type: holding
-      address: 4110
-      data_type: uint16
-
-  - platform: number
-    key: temperature_correction_factor
-    name: "Temperature Correction Factor"
-    unit: "mV/°C/cell"
-    description: "Temperature correction factor"
-    read:
-      type: holding
-      address: 4113
-      data_type: uint16
-    write:
-      type: holding
-      address: 4113
-      data_type: uint16
-
-  - platform: number
-    key: initial_resistance
-    name: "Initial Resistance"
-    unit: "mΩ"
-    read:
-      type: holding
-      address: 4114
-      data_type: uint16
-    write:
-      type: holding
-      address: 4114
-      data_type: uint16
-
-  - platform: select
-    key: cfg_mult_pcs_bms_flag
-    name: "CfgMultPcsBMSFlag"
-    values:
-      0: "Disable"
-      1: "Enable"
-    read:
-      type: holding
-      address: 4115
-      data_type: uint16
-    write:
-      type: holding
-      address: 4115
-      data_type: uint16
-
-  - platform: number
-    key: end_charge_voltage
-    name: "EndChargeVoltage"
-    unit: "V"
-    description: "Cut-off charge voltage"
-    read:
-      type: holding
-      address: 4117
-      data_type: uint16
-      scale: 0.1
-    write:
-      type: holding
-      address: 4117
-      data_type: uint16
-      scale: 0.1
-
-  - platform: number
-    key: equalization_charge_timeout
-    name: "Equalization ChargeTimeOut"
-    unit: "min"
-    description: "Equalize charging delay time"
-    read:
-      type: holding
-      address: 4118
-      data_type: uint16
-    write:
-      type: holding
-      address: 4118
-      data_type: uint16
-
-  - platform: select
-    key: equalization_enable
-    name: "Equalization Enable"
-    minimum: 0
-    maximum: 1
-    values:
-      0: "Disable"
-      1: "Enable"
-    read:
-      type: holding
-      address: 4119
-      data_type: uint16
-    write:
-      type: holding
-      address: 4119
-      data_type: uint16
-
-# [Inverter EMS Parameters]
-
   - platform: select
     key: ems_mode
-    name: "Ems Mode"
+    name: Ems Mode
     values:
-      0: "Self-Use"
-      1: "Economical Mode"
-      2: "Backup Mode"
-      3: "Pure Off-Grid Mode"
-      4: "Force Charge Mode"
-      5: "Force Discharge Mode"
-      6: "Peak-shaving Mode"
-      7: "TOU Mode"
+      "0": Self-Use
+      "1": Economical Mode
+      "2": Backup Mode
+      "3": Pure Off-Grid Mode
+      "4": Force Charge Mode
+      "5": Force Discharge Mode
+      "6": Peak-shaving Mode
+      "7": TOU Mode
     read:
       type: holding
       address: 4300
@@ -481,14 +129,13 @@ entities:
       type: holding
       address: 4300
       data_type: uint16
-
   - platform: number
     key: self_used_soc
-    name: "Self-Used SOC"
+    name: Self-Used SOC
     unit: "%"
     minimum: 10
     maximum: 100
-    description: "Reserved SOC in self-use mode"
+    description: Reserved SOC in self-use mode
     read:
       type: holding
       address: 4301
@@ -497,14 +144,13 @@ entities:
       type: holding
       address: 4301
       data_type: uint16
-
   - platform: number
     key: backup_soc
-    name: "Back-up SOC"
+    name: Back-up SOC
     unit: "%"
     minimum: 60
     maximum: 100
-    description: "Reserved SOC in back-up mode"
+    description: Reserved SOC in back-up mode
     read:
       type: holding
       address: 4302
@@ -513,14 +159,13 @@ entities:
       type: holding
       address: 4302
       data_type: uint16
-
   - platform: number
     key: force_charge_soc
-    name: "Force Charge SOC"
+    name: Force Charge SOC
     unit: "%"
     minimum: 10
     maximum: 100
-    description: "Max SOC in force charge mode"
+    description: Max SOC in force charge mode
     read:
       type: holding
       address: 4303
@@ -529,12 +174,11 @@ entities:
       type: holding
       address: 4303
       data_type: uint16
-
   - platform: number
     key: maximum_charge_power
-    name: "Maximum Charge Power"
+    name: Maximum Charge Power
     unit: "%"
-    description: "Maximum charge power rate"
+    description: Maximum charge power rate
     read:
       type: holding
       address: 4304
@@ -545,12 +189,11 @@ entities:
       address: 4304
       data_type: uint16
       scale: 0.1
-
   - platform: number
-    key: force_discharge_soc
-    name: "Force Disarge SOC"
+    key: force_disarge_soc
+    name: Force Disarge SOC
     unit: "%"
-    description: "Max SOC in force discharge mode"
+    description: Max SOC in force discharge mode
     read:
       type: holding
       address: 4305
@@ -559,12 +202,11 @@ entities:
       type: holding
       address: 4305
       data_type: uint16
-
   - platform: number
     key: maximum_discharge_power
-    name: "Maximum Discharge Power"
+    name: Maximum Discharge Power
     unit: "%"
-    description: "Maximum discharge power rate"
+    description: Maximum discharge power rate
     read:
       type: holding
       address: 4306
@@ -575,12 +217,11 @@ entities:
       address: 4306
       data_type: uint16
       scale: 0.1
-
   - platform: number
     key: economic_mode_soc
-    name: "Economic Mode SOC"
+    name: Economic Mode SOC
     unit: "%"
-    description: "Reserved SOC in economic mode"
+    description: Reserved SOC in economic mode
     read:
       type: holding
       address: 4307
@@ -589,18 +230,636 @@ entities:
       type: holding
       address: 4307
       data_type: uint16
-
   - platform: number
-    key: economy_mode_date_number
-    name: "Economy Mode Date Number"
-    minimum: 1
-    maximum: 4
-    description: "The date segments number of economic mode"
+    key: tou_mode_reserved_soc
+    name: TOU Mode Reserved SOC
+    unit: "%"
+    minimum: 10
+    maximum: 100
     read:
       type: holding
-      address: 4308
+      address: 4545
       data_type: uint16
     write:
       type: holding
-      address: 4308
+      address: 4545
       data_type: uint16
+  - platform: select
+    key: work_status
+    name: WorkStatus
+    values:
+      "0": PowerInit
+      "1": StdbyMode
+      "2": GridOnTest
+      "3": GridOnMode
+      "4": FaultMode
+      "5": GridOffMode
+      "6": ByPassMode
+    read:
+      type: holding
+      address: 0
+      data_type: uint16
+  - platform: sensor
+    key: power_dsp_fm_version
+    name: Power DSP FM Version
+    description: Power DSP firmware version
+    read:
+      type: holding
+      address: 1
+      data_type: uint16
+  - platform: sensor
+    key: sw_fault
+    name: SW Fault
+    description: Software fault code
+    read:
+      type: holding
+      address: 19
+      data_type: uint32
+  - platform: sensor
+    key: hw_fault
+    name: HW Fault
+    description: Hardware fault code
+    read:
+      type: holding
+      address: 21
+      data_type: uint32
+  - platform: sensor
+    key: pv_total_power
+    name: PV Total Power
+    unit: W
+    description: PV total power
+    read:
+      type: holding
+      address: 26
+      data_type: uint16
+  - platform: sensor
+    key: pv1_voltage
+    name: PV1_Voltage
+    unit: V
+    description: PV1 voltage
+    read:
+      type: holding
+      address: 27
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: pv1_current
+    name: PV1_Current
+    unit: A
+    description: PV1 current
+    read:
+      type: holding
+      address: 28
+      data_type: int16
+      scale: 0.01
+  - platform: sensor
+    key: pv1_power
+    name: PV1_Power
+    unit: W
+    description: PV1 power
+    read:
+      type: holding
+      address: 29
+      data_type: uint16
+  - platform: sensor
+    key: pv2_voltage
+    name: PV2_Voltage
+    unit: V
+    description: PV2 voltage
+    read:
+      type: holding
+      address: 30
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: pv2_current
+    name: PV2_Current
+    unit: A
+    description: PV2 current
+    read:
+      type: holding
+      address: 31
+      data_type: int16
+      scale: 0.01
+  - platform: sensor
+    key: pv2_power
+    name: PV2_Power
+    unit: W
+    description: PV2 power
+    read:
+      type: holding
+      address: 32
+      data_type: uint16
+  - platform: sensor
+    key: pv3_voltage
+    name: PV3_Voltage
+    unit: V
+    description: PV3 voltage
+    read:
+      type: holding
+      address: 33
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: pv3_current
+    name: PV3_Current
+    unit: A
+    description: PV3 current
+    read:
+      type: holding
+      address: 34
+      data_type: int16
+      scale: 0.01
+  - platform: sensor
+    key: pv3_power
+    name: PV3_Power
+    unit: W
+    description: PV3 power
+    read:
+      type: holding
+      address: 35
+      data_type: uint16
+  - platform: sensor
+    key: pv4_voltage
+    name: PV4_Voltage
+    unit: V
+    description: PV4 voltage
+    read:
+      type: holding
+      address: 36
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: pv4_current
+    name: PV4_Current
+    unit: A
+    description: PV4 current
+    read:
+      type: holding
+      address: 37
+      data_type: int16
+      scale: 0.01
+  - platform: sensor
+    key: pv4_power
+    name: PV4_Power
+    unit: W
+    description: PV4 power
+    read:
+      type: holding
+      address: 38
+      data_type: uint16
+  - platform: sensor
+    key: bat_total_power
+    name: Bat Total Power
+    unit: W
+    description: Battery total power
+    read:
+      type: holding
+      address: 45
+      data_type: int16
+  - platform: sensor
+    key: bat1_voltage
+    name: Bat1 Voltage
+    unit: V
+    description: Battery voltage
+    read:
+      type: holding
+      address: 46
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: bat1_current_g1_g2
+    name: Bat1 Current (G1/G2)
+    unit: A
+    description: The current expansion bit fits the G1/G2 model
+    read:
+      type: holding
+      address: 48
+      data_type: int16
+      scale: 0.01
+  - platform: sensor
+    key: bat1_current_g3
+    name: Bat1 Current (G3)
+    unit: A
+    description: The current expansion bit fits the G3 model
+    read:
+      type: holding
+      address: 48
+      data_type: int32
+      scale: 0.01
+  - platform: sensor
+    key: bat1_power_g3
+    name: Bat1 Power (G3)
+    unit: W
+    description: The current expansion bit fits the G3 model
+    read:
+      type: holding
+      address: 50
+      data_type: int32
+  - platform: sensor
+    key: bat1_power_g1_g2
+    name: Bat1 Power (G1/G2)
+    unit: W
+    description: The current expansion bit fits the G1/G2 model
+    read:
+      type: holding
+      address: 51
+      data_type: int16
+  - platform: sensor
+    key: positive_bus_voltage
+    name: Positive Bus Voltage
+    unit: V
+    read:
+      type: holding
+      address: 58
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: negative_bus_voltage
+    name: Negative Bus Voltage
+    unit: V
+    read:
+      type: holding
+      address: 59
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: bus_voltage
+    name: Bus Voltage
+    unit: V
+    description: DC bus voltage
+    read:
+      type: holding
+      address: 60
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: grid_total_active_power
+    name: Grid Total Active Power
+    unit: W
+    read:
+      type: holding
+      address: 1814
+      data_type: int32
+  - platform: sensor
+    key: grid_total_reactive_power
+    name: Grid Total Reactive Power
+    unit: var
+    read:
+      type: holding
+      address: 1822
+      data_type: int32
+  - platform: select
+    key: battery_cluster_type
+    name: Battery Type
+    values:
+      "0": No
+      "1": Lithium battery
+      "2": Phosphoric acid battery
+      "3": Simulated battery
+    read:
+      type: holding
+      address: 1900
+      data_type: uint16
+  - platform: select
+    key: battery_link_status
+    name: Battery Link Status
+    values:
+      "0": Offline
+      "1": Online
+    read:
+      type: holding
+      address: 1901
+      data_type: uint16
+  - platform: select
+    key: battery_cluster_work_status
+    name: Work Status
+    values:
+      "0": Standby
+      "1": Charge
+      "2": Discharge
+    read:
+      type: holding
+      address: 1904
+      data_type: uint16
+  - platform: sensor
+    key: battery_fault_code
+    name: Fault Code
+    read:
+      type: holding
+      address: 1905
+      data_type: uint32
+  - platform: sensor
+    key: battery_total_capacity
+    name: Total Capacity
+    unit: kWh
+    read:
+      type: holding
+      address: 1907
+      data_type: uint32
+      scale: 0.1
+  - platform: sensor
+    key: battery_soc
+    name: Battery Soc
+    unit: "%"
+    read:
+      type: holding
+      address: 1909
+      data_type: uint16
+  - platform: sensor
+    key: battery_soh
+    name: Battery Soh
+    unit: "%"
+    read:
+      type: holding
+      address: 1910
+      data_type: uint16
+  - platform: sensor
+    key: battery_voltage
+    name: Battery Voltage
+    unit: V
+    read:
+      type: holding
+      address: 1911
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: battery_current
+    name: Battery Current
+    unit: A
+    read:
+      type: holding
+      address: 1912
+      data_type: int32
+      scale: 0.1
+  - platform: sensor
+    key: battery_power
+    name: Battery Power
+    unit: W
+    read:
+      type: holding
+      address: 1914
+      data_type: int32
+  - platform: sensor
+    key: battery_max_charge_current
+    name: Max Charge Current
+    unit: A
+    read:
+      type: holding
+      address: 1916
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: battery_max_discharge_current
+    name: Max Discharge Current
+    unit: A
+    read:
+      type: holding
+      address: 1917
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: module_max_temperature
+    name: Module Max Temperature
+    unit: °C
+    read:
+      type: holding
+      address: 1920
+      data_type: int16
+  - platform: sensor
+    key: module_min_temperature
+    name: Module Min Temperature
+    unit: °C
+    read:
+      type: holding
+      address: 1921
+      data_type: int16
+  - platform: sensor
+    key: cell_max_temperature
+    name: Cell Max Temperature
+    unit: °C
+    read:
+      type: holding
+      address: 1922
+      data_type: int16
+  - platform: sensor
+    key: cell_min_temperature
+    name: Cell Min Temperature
+    unit: °C
+    read:
+      type: holding
+      address: 1923
+      data_type: int16
+  - platform: sensor
+    key: module_max_voltage
+    name: Module Max Voltage
+    unit: V
+    read:
+      type: holding
+      address: 1924
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: module_min_voltage
+    name: Module Min Voltage
+    unit: V
+    read:
+      type: holding
+      address: 1925
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: cell_max_voltage
+    name: Cell Max Voltage
+    unit: V
+    read:
+      type: holding
+      address: 1926
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: cell_min_voltage
+    name: Cell Min Voltage
+    unit: V
+    read:
+      type: holding
+      address: 1927
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: battery_cycle_count
+    name: Battery Cycle Count
+    read:
+      type: holding
+      address: 22175
+      data_type: uint16
+  - platform: sensor
+    key: cumulative_battery_charge
+    name: Cumulative Battery Charge
+    unit: kWh
+    read:
+      type: holding
+      address: 22176
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: cumulative_battery_discharge
+    name: Cumulative Battery Discharge
+    unit: kWh
+    read:
+      type: holding
+      address: 22177
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: single_charge_capacity
+    name: Single charge capacity
+    unit: kWh
+    read:
+      type: holding
+      address: 22178
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: single_discharge_quantity
+    name: Single discharge quantity
+    unit: kWh
+    read:
+      type: holding
+      address: 22179
+      data_type: uint16
+      scale: 0.1
+  - platform: sensor
+    key: rated_capacity
+    name: Rated capacity
+    unit: kWh
+    read:
+      type: holding
+      address: 22180
+      data_type: uint16
+      scale: 0.1
+  - platform: binary_sensor
+    key: battery_status_full_charge_flag_r22197
+    name: Battery Status - Full charge Flag
+    minimum: 0
+    maximum: 1
+    read:
+      type: holding
+      address: 22197
+      data_type: uint16
+      bit: 0
+  - platform: binary_sensor
+    key: battery_status_empty_flag_r22197
+    name: Battery Status - Empty Flag
+    minimum: 0
+    maximum: 1
+    read:
+      type: holding
+      address: 22197
+      data_type: uint16
+      bit: 1
+  - platform: binary_sensor
+    key: battery_status_force_charge_request_flag_r22197
+    name: Battery Status - Force Charge Request Flag
+    minimum: 0
+    maximum: 1
+    read:
+      type: holding
+      address: 22197
+      data_type: uint16
+      bit: 2
+  - platform: binary_sensor
+    key: battery_status_full_charge_request_flag_r22197
+    name: Battery Status - Full Charge Request Flag
+    minimum: 0
+    maximum: 1
+    read:
+      type: holding
+      address: 22197
+      data_type: uint16
+      bit: 3
+  - platform: binary_sensor
+    key: battery_status_no_charge_flag_r22197
+    name: Battery Status - No Charge Flag
+    minimum: 0
+    maximum: 1
+    read:
+      type: holding
+      address: 22197
+      data_type: uint16
+      bit: 4
+  - platform: binary_sensor
+    key: battery_status_no_discharge_flag_r22197
+    name: Battery Status - No Discharge Flag
+    minimum: 0
+    maximum: 1
+    read:
+      type: holding
+      address: 22197
+      data_type: uint16
+      bit: 5
+  - platform: select
+    key: system_workstatus_r30000
+    name: System WorkStatus
+    values:
+      "0": PowerInit
+      "1": StdbyMode
+      "2": GridOnTest
+      "3": GridOnMode
+      "4": FaultMode
+      "5": GridOffMode
+      "6": ByPassMode
+    read:
+      type: holding
+      address: 30000
+      data_type: uint16
+  - platform: sensor
+    key: pv_total_power_r30001
+    name: PV Total Power
+    unit: W
+    description: PV Total Power (Internal + External)
+    read:
+      type: holding
+      address: 30001
+      data_type: uint32
+  - platform: sensor
+    key: internal_pv_total_power
+    name: Internal PV Total power
+    unit: W
+    read:
+      type: holding
+      address: 30003
+      data_type: uint32
+  - platform: sensor
+    key: external_pv_total_power
+    name: External PV Total Power
+    unit: W
+    read:
+      type: holding
+      address: 30005
+      data_type: uint32
+  - platform: sensor
+    key: inv_active_power
+    name: Inv Active Power
+    unit: W
+    description: Inverter combined active power
+    read:
+      type: holding
+      address: 30007
+      data_type: int32
+  - platform: sensor
+    key: battery_power_r30009
+    name: Battery Power
+    unit: W
+    read:
+      type: holding
+      address: 30009
+      data_type: int32
+  - platform: sensor
+    key: grid_total_active_power_r30011
+    name: Grid Total Active Power
+    unit: W
+    read:
+      type: holding
+      address: 30011
+      data_type: int32
