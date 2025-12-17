@@ -1,0 +1,207 @@
+device:
+  name: "Hoymiles Battery Cluster (Extracted Mapping)"
+  manufacturer: "Hoymiles"
+  model: "Multiple"
+
+entities:
+
+  # ------------------------------------------------------------
+  # [Battery Cluster Parameters]
+  # ------------------------------------------------------------
+
+  - platform: select
+    key: battery_cluster_type
+    name: "Battery Type"
+    values:
+      0: "No"
+      1: "Lithium battery"
+      2: "Phosphoric acid battery"
+      3: "Simulated battery"
+    read:
+      type: input
+      address: 1900
+      data_type: uint16
+
+  - platform: select
+    key: battery_link_status
+    name: "Battery Link Status"
+    values:
+      0: "Offline"
+      1: "Online"
+    read:
+      type: input
+      address: 1901
+      data_type: uint16
+
+  - platform: select
+    key: battery_cluster_work_status
+    name: "Work Status"
+    values:
+      0: "Standby"
+      1: "Charge"
+      2: "Discharge"
+    read:
+      type: input
+      address: 1904
+      data_type: uint16
+
+  - platform: sensor
+    key: battery_fault_code
+    name: "Fault Code"
+    read:
+      type: input
+      address: 1905
+      data_type: uint32
+
+  - platform: sensor
+    key: battery_total_capacity
+    name: "Total Capacity"
+    unit: "kWh"
+    read:
+      type: input
+      address: 1907
+      data_type: uint32
+      scale: 0.1
+
+  - platform: sensor
+    key: battery_soc
+    name: "Battery Soc"
+    unit: "%"
+    read:
+      type: input
+      address: 1909
+      data_type: uint16
+
+  - platform: sensor
+    key: battery_soh
+    name: "Battery Soh"
+    unit: "%"
+    read:
+      type: input
+      address: 1910
+      data_type: uint16
+
+  - platform: sensor
+    key: battery_voltage
+    name: "Battery Voltage"
+    unit: "V"
+    read:
+      type: input
+      address: 1911
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: battery_current
+    name: "Battery Current"
+    unit: "A"
+    read:
+      type: input
+      address: 1912
+      data_type: int32
+      scale: 0.1
+
+  - platform: sensor
+    key: battery_power
+    name: "Battery Power"
+    unit: "W"
+    read:
+      type: input
+      address: 1914
+      data_type: int32
+
+  - platform: sensor
+    key: battery_max_charge_current
+    name: "Max Charge Current"
+    unit: "A"
+    read:
+      type: input
+      address: 1916
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: battery_max_discharge_current
+    name: "Max Discharge Current"
+    unit: "A"
+    read:
+      type: input
+      address: 1917
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: module_max_temperature
+    name: "Module Max Temperature"
+    unit: "°C"
+    read:
+      type: input
+      address: 1920
+      data_type: int16
+
+  - platform: sensor
+    key: module_min_temperature
+    name: "Module Min Temperature"
+    unit: "°C"
+    read:
+      type: input
+      address: 1921
+      data_type: int16
+
+  - platform: sensor
+    key: cell_max_temperature
+    name: "Cell Max Temperature"
+    unit: "°C"
+    read:
+      type: input
+      address: 1922
+      data_type: int16
+
+  - platform: sensor
+    key: cell_min_temperature
+    name: "Cell Min Temperature"
+    unit: "°C"
+    read:
+      type: input
+      address: 1923
+      data_type: int16
+
+  - platform: sensor
+    key: module_max_voltage
+    name: "Module Max Voltage"
+    unit: "V"
+    read:
+      type: input
+      address: 1924
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: module_min_voltage
+    name: "Module Min Voltage"
+    unit: "V"
+    read:
+      type: input
+      address: 1925
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: cell_max_voltage
+    name: "Cell Max Voltage"
+    unit: "V"
+    read:
+      type: input
+      address: 1926
+      data_type: uint16
+      scale: 0.1
+
+  - platform: sensor
+    key: cell_min_voltage
+    name: "Cell Min Voltage"
+    unit: "V"
+    read:
+      type: input
+      address: 1927
+      data_type: uint16
+      scale: 0.1
