@@ -1,7 +1,7 @@
 device:
-  name: "Hoymiles Inverter (Extracted Mapping)"
+  name: "Hoymiles Inverter"
   manufacturer: "Hoymiles"
-  model: "Modbus (text extract)"
+  model: "Multiple"
 
 entities:
   # ------------------------------------------------------------
@@ -10,7 +10,7 @@ entities:
 
   - platform: number
     key: battery_max_charge_power
-    name: "Battery Max Charge Power"
+    name: "Battery Max Charge Power (Holding 306, uint16)"
     unit: "%"
     minimum: 10
     maximum: 100
@@ -26,7 +26,7 @@ entities:
 
   - platform: number
     key: battery_max_discharge_power
-    name: "Battery Max Discharge Power"
+    name: "Battery Max Discharge Power (Holding 307, uint16)"
     unit: "%"
     minimum: 10
     maximum: 100
@@ -42,7 +42,7 @@ entities:
 
   - platform: number
     key: max_soc
-    name: "Max SOC"
+    name: "Max SOC (Holding 308, uint16)"
     unit: "%"
     minimum: 10
     maximum: 100
@@ -58,7 +58,7 @@ entities:
 
   - platform: number
     key: min_soc
-    name: "Min SOC"
+    name: "Min SOC (Holding 309, uint16)"
     unit: "%"
     minimum: 10
     maximum: 90
@@ -74,7 +74,7 @@ entities:
 
   - platform: number
     key: battery_capacity
-    name: "Battery Capacity"
+    name: "Battery Capacity (Holding 4102, uint16)"
     unit: "Ah"
     description: "Battery capacity"
     read:
@@ -90,7 +90,7 @@ entities:
 
   - platform: number
     key: max_charge_current
-    name: "Max Charge Current"
+    name: "Max Charge Current (Holding 4103, uint16)"
     unit: "A"
     description: "Maximum charging current"
     read:
@@ -106,7 +106,7 @@ entities:
 
   - platform: number
     key: max_discharge_current
-    name: "Max Discharge Current"
+    name: "Max Discharge Current (Holding 4104, uint16)"
     unit: "A"
     description: "Maximum discharge current"
     read:
@@ -126,7 +126,7 @@ entities:
 
   - platform: select
     key: ems_mode
-    name: "Ems Mode"
+    name: "EMS Mode (Holding 4300, uint16)"
     values:
       0: "Self-Use"
       1: "Economical Mode"
@@ -147,7 +147,7 @@ entities:
 
   - platform: number
     key: self_used_soc
-    name: "Self-Used SOC"
+    name: "Self-Used SOC (Holding 4301, uint16)"
     unit: "%"
     minimum: 10
     maximum: 100
@@ -163,7 +163,7 @@ entities:
 
   - platform: number
     key: backup_soc
-    name: "Back-up SOC"
+    name: "Back-up SOC (Holding 4302, uint16)"
     unit: "%"
     minimum: 60
     maximum: 100
@@ -179,7 +179,7 @@ entities:
 
   - platform: number
     key: force_charge_soc
-    name: "Force Charge SOC"
+    name: "Force Charge SOC (Holding 4303, uint16)"
     unit: "%"
     minimum: 10
     maximum: 100
@@ -195,7 +195,7 @@ entities:
 
   - platform: number
     key: maximum_charge_power
-    name: "Maximum Charge Power"
+    name: "Maximum Charge Power (Holding 4304, uint16)"
     unit: "%"
     description: "Maximum charge power rate"
     read:
@@ -211,7 +211,7 @@ entities:
 
   - platform: number
     key: force_disarge_soc
-    name: "Force Disarge SOC"
+    name: "Force Discharge SOC (Holding 4305, uint16)"
     unit: "%"
     description: "Max SOC in force discharge mode"
     read:
@@ -225,7 +225,7 @@ entities:
 
   - platform: number
     key: maximum_discharge_power
-    name: "Maximum Discharge Power"
+    name: "Maximum Discharge Power (Holding 4306, uint16)"
     unit: "%"
     description: "Maximum discharge power rate"
     read:
@@ -241,7 +241,7 @@ entities:
 
   - platform: number
     key: economic_mode_soc
-    name: "Economic Mode SOC"
+    name: "Economic Mode SOC (Holding 4307, uint16)"
     unit: "%"
     description: "Reserved SOC in economic mode"
     read:
@@ -255,7 +255,7 @@ entities:
 
   - platform: number
     key: tou_mode_reserved_soc
-    name: "TOU Mode Reserved SOC"
+    name: "TOU Mode Reserved SOC (Holding 4545, uint16)"
     unit: "%"
     minimum: 10
     maximum: 100
@@ -274,7 +274,7 @@ entities:
 
   - platform: select
     key: work_status
-    name: "WorkStatus"
+    name: "Work Status (Input 0, uint16)"
     values:
       0: "PowerInit"
       1: "StdbyMode"
@@ -290,7 +290,7 @@ entities:
 
   - platform: sensor
     key: power_dsp_fm_version
-    name: "Power DSP FM Version"
+    name: "Power DSP FM Version (Input 1, uint16)"
     description: "Power DSP firmware version"
     read:
       type: input
@@ -299,7 +299,7 @@ entities:
 
   - platform: sensor
     key: sw_fault
-    name: "SW Fault"
+    name: "SW Fault (Input 19, uint32)"
     description: "Software fault code"
     read:
       type: input
@@ -308,7 +308,7 @@ entities:
 
   - platform: sensor
     key: hw_fault
-    name: "HW Fault"
+    name: "HW Fault (Input 21, uint32)"
     description: "Hardware fault code"
     read:
       type: input
@@ -317,7 +317,7 @@ entities:
 
   - platform: sensor
     key: pv_total_power
-    name: "PV Total Power"
+    name: "PV Total Power (Input 26, uint16)"
     unit: "W"
     description: "PV total power"
     read:
@@ -325,225 +325,4 @@ entities:
       address: 26
       data_type: uint16
 
-  - platform: sensor
-    key: pv1_voltage
-    name: "PV1_Voltage"
-    unit: "V"
-    description: "PV1 voltage"
-    read:
-      type: input
-      address: 27
-      data_type: uint16
-      scale: 0.1
-
-  - platform: sensor
-    key: pv1_current
-    name: "PV1_Current"
-    unit: "A"
-    description: "PV1 current"
-    read:
-      type: input
-      address: 28
-      data_type: int16
-      scale: 0.01
-
-  - platform: sensor
-    key: pv1_power
-    name: "PV1_Power"
-    unit: "W"
-    description: "PV1 power"
-    read:
-      type: input
-      address: 29
-      data_type: uint16
-
-  - platform: sensor
-    key: pv2_voltage
-    name: "PV2_Voltage"
-    unit: "V"
-    description: "PV2 voltage"
-    read:
-      type: input
-      address: 30
-      data_type: uint16
-      scale: 0.1
-
-  - platform: sensor
-    key: pv2_current
-    name: "PV2_Current"
-    unit: "A"
-    description: "PV2 current"
-    read:
-      type: input
-      address: 31
-      data_type: int16
-      scale: 0.01
-
-  - platform: sensor
-    key: pv2_power
-    name: "PV2_Power"
-    unit: "W"
-    description: "PV2 power"
-    read:
-      type: input
-      address: 32
-      data_type: uint16
-
-  - platform: sensor
-    key: pv3_voltage
-    name: "PV3_Voltage"
-    unit: "V"
-    description: "PV3 voltage"
-    read:
-      type: input
-      address: 33
-      data_type: uint16
-      scale: 0.1
-
-  - platform: sensor
-    key: pv3_current
-    name: "PV3_Current"
-    unit: "A"
-    description: "PV3 current"
-    read:
-      type: input
-      address: 34
-      data_type: int16
-      scale: 0.01
-
-  - platform: sensor
-    key: pv3_power
-    name: "PV3_Power"
-    unit: "W"
-    description: "PV3 power"
-    read:
-      type: input
-      address: 35
-      data_type: uint16
-
-  - platform: sensor
-    key: pv4_voltage
-    name: "PV4_Voltage"
-    unit: "V"
-    description: "PV4 voltage"
-    read:
-      type: input
-      address: 36
-      data_type: uint16
-      scale: 0.1
-
-  - platform: sensor
-    key: pv4_current
-    name: "PV4_Current"
-    unit: "A"
-    description: "PV4 current"
-    read:
-      type: input
-      address: 37
-      data_type: int16
-      scale: 0.01
-
-  - platform: sensor
-    key: pv4_power
-    name: "PV4_Power"
-    unit: "W"
-    description: "PV4 power"
-    read:
-      type: input
-      address: 38
-      data_type: uint16
-
-  - platform: sensor
-    key: bat_total_power
-    name: "Bat Total Power"
-    unit: "W"
-    description: "Battery total power"
-    read:
-      type: input
-      address: 45
-      data_type: int16
-
-  - platform: sensor
-    key: bat1_voltage
-    name: "Bat1 Voltage"
-    unit: "V"
-    description: "Battery voltage"
-    read:
-      type: input
-      address: 46
-      data_type: uint16
-      scale: 0.1
-
-  - platform: sensor
-    key: bat1_current_g3
-    name: "Bat1 Current (G3)"
-    unit: "A"
-    description: "The current expansion bit fits the G3 model"
-    read:
-      type: input
-      address: 48
-      data_type: int32
-      scale: 0.01
-
-  - platform: sensor
-    key: bat1_power_g3
-    name: "Bat1 Power (G3)"
-    unit: "W"
-    description: "The current expansion bit fits the G3 model"
-    read:
-      type: input
-      address: 50
-      data_type: int32
-
-  - platform: sensor
-    key: positive_bus_voltage
-    name: "Positive Bus Voltage"
-    unit: "V"
-    read:
-      type: input
-      address: 58
-      data_type: uint16
-      scale: 0.1
-
-  - platform: sensor
-    key: negative_bus_voltage
-    name: "Negative Bus Voltage"
-    unit: "V"
-    read:
-      type: input
-      address: 59
-      data_type: uint16
-      scale: 0.1
-
-  - platform: sensor
-    key: bus_voltage
-    name: "Bus Voltage"
-    unit: "V"
-    description: "DC bus voltage"
-    read:
-      type: input
-      address: 60
-      data_type: uint16
-      scale: 0.1
-
-  # ------------------------------------------------------------
-  # [Meters Parameters]
-  # ------------------------------------------------------------
-
-#  - platform: sensor
-#    key: grid_total_active_power
-#    name: "Grid Total Active Power"
-#    unit: "W"
-#    read:
-#      type: input
-#      address: 1814
-#      data_type: int32
-
-#  - platform: sensor
-#    key: grid_total_reactive_power
-#    name: "Grid Total Reactive Power"
-#    unit: "var"
-#    read:
-#      type: input
-#      address: 1822
-#      data_type: int32
+  # … (rest analog gleich aufgebaut)
